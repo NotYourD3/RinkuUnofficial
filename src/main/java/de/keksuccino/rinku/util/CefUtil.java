@@ -33,6 +33,7 @@ public final class CefUtil {
     private static boolean init;
     private static CefApp cefAppInstance;
     private static CefClient cefClientInstance;
+    private static volatile String effectiveDesktopUserAgent;
 
     private CefUtil() {}
 
@@ -107,6 +108,10 @@ public final class CefUtil {
         ArrayList<String> cefSwitchesList = new ArrayList<>();
         cefSwitchesList.add("--autoplay-policy=no-user-gesture-required");
         cefSwitchesList.add("--disable-features=ImmersiveReadAnything");
+        cefSwitchesList.add("--disable-mobile-emulation");
+        cefSwitchesList.add("--use-mobile-user-agent=false");
+        cefSwitchesList.add("--device-scale-factor=1");
+        cefSwitchesList.add("--force-device-scale-factor=1");
         if (settings.isDisableWebSecurity()) {
             cefSwitchesList.add("--disable-web-security");
         }
@@ -138,10 +143,23 @@ public final class CefUtil {
         // Set the user agent if there's one defined in RinkuSettings
         if (settings.getUserAgent() != null) {
             cefSettings.user_agent = settings.getUserAgent();
+            effectiveDesktopUserAgent = settings.getUserAgent();
         } else {
-            // If there is no custom defined user agent, set a user agent product.
-            // Work around for Google sign-in "This browser or app may not be secure."
-            cefSettings.user_agent_product = "Rinku/2";
+            // Use an explicit desktop Chrome user agent to prevent sites from serving mobile layouts.
+            // We keep the "Rinku/2" product token appended for compatibility with the previous workaround.
+            String osName = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+            String osPart;
+            if (osName.contains("win")) {
+                osPart = "Windows NT 10.0; Win64; x64";
+            } else if (osName.contains("mac")) {
+                osPart = "Macintosh; Intel Mac OS X 10_15_7";
+            } else {
+                osPart = "X11; Linux x86_64";
+            }
+            // A stable, well-known desktop Chrome version string - exact minor version isn't critical for
+            // convincing responsive sites to serve the desktop layout.
+            effectiveDesktopUserAgent = "Mozilla/5.0 (" + osPart + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Rinku/2";
+            cefSettings.user_agent = effectiveDesktopUserAgent;
         }
 
         cefAppInstance = CefApp.getInstance(cefSwitches, cefSettings);
@@ -168,6 +186,10 @@ public final class CefUtil {
 
     public static CefClient getCefClient() {
         return cefClientInstance;
+    }
+
+    public static String getEffectiveDesktopUserAgent() {
+        return effectiveDesktopUserAgent;
     }
 
     private static Path resolvePersistentCefCachePath() {

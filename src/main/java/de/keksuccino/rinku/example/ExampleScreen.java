@@ -55,6 +55,10 @@ public class ExampleScreen extends GuiScreen {
             boolean transparent = true;
             browser = Rinku.createBrowser(DEFAULT_URL, transparent);
         }
+        int scale = this.mc.gameSettings.guiScale;
+        if (scale <= 0) scale = 1;
+        currentRenderedWidthPixels = (int) (getBrowserWidth() * scale * RENDER_SCALE_FACTOR);
+        currentRenderedHeightPixels = (int) (getBrowserHeight() * scale * RENDER_SCALE_FACTOR);
         registerAddressBarDisplayHandler();
         initNavigationWidgets();
         resizeBrowser();
@@ -78,6 +82,10 @@ public class ExampleScreen extends GuiScreen {
 
                 Minecraft.getMinecraft().func_152344_a(() -> {
                     if (Minecraft.getMinecraft().currentScreen != ExampleScreen.this || urlBox == null || url == null) {
+                        return;
+                    }
+                    // Don't overwrite the address bar while the user is actively editing it.
+                    if (urlBox.isFocused()) {
                         return;
                     }
                     if (!url.equals(urlBox.getText())) {
@@ -136,19 +144,42 @@ public class ExampleScreen extends GuiScreen {
         return x >= browserX && y >= browserY && x < (browserX + getBrowserWidth()) && y < (browserY + getBrowserHeight());
     }
 
+    private boolean isInUrlBoxBounds(double x, double y) {
+        if (urlBox == null) {
+            return false;
+        }
+        return x >= urlBox.xPosition && y >= urlBox.yPosition
+                && x < (urlBox.xPosition + urlBox.width) && y < (urlBox.yPosition + urlBox.height);
+    }
+
+    private static final int RENDER_SCALE_FACTOR = 4;
+
+    private int currentRenderedWidthPixels;
+    private int currentRenderedHeightPixels;
+
     private int mouseX(double x) {
-        return (int) ((x - getBrowserX()) * this.mc.gameSettings.guiScale);
+        int displayWidth = getBrowserWidth();
+        if (displayWidth <= 0) return 0;
+        double relativeX = (x - getBrowserX()) / (double) displayWidth;
+        return (int) (relativeX * currentRenderedWidthPixels);
     }
 
     private int mouseY(double y) {
-        return (int) ((y - getBrowserY()) * this.mc.gameSettings.guiScale);
+        int displayHeight = getBrowserHeight();
+        if (displayHeight <= 0) return 0;
+        double relativeY = (y - getBrowserY()) / (double) displayHeight;
+        return (int) (relativeY * currentRenderedHeightPixels);
     }
 
     private void resizeBrowser() {
         if (browser != null) {
             int scale = this.mc.gameSettings.guiScale;
             if (scale <= 0) scale = 1;
-            browser.resize((int) (getBrowserWidth() * scale), (int) (getBrowserHeight() * scale));
+            int w = (int) (getBrowserWidth() * scale * RENDER_SCALE_FACTOR);
+            int h = (int) (getBrowserHeight() * scale * RENDER_SCALE_FACTOR);
+            currentRenderedWidthPixels = w;
+            currentRenderedHeightPixels = h;
+            browser.resize(w, h);
         }
     }
 
@@ -270,7 +301,16 @@ public class ExampleScreen extends GuiScreen {
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        func_146110_a(x, y, 0.0F, 0.0F, frameRenderWidth, frameRenderHeight, frameRenderWidth, frameRenderHeight);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0.0F, 0.0F);
+        GL11.glVertex2f(x, y);
+        GL11.glTexCoord2f(0.0F, 1.0F);
+        GL11.glVertex2f(x, y + frameRenderHeight);
+        GL11.glTexCoord2f(1.0F, 1.0F);
+        GL11.glVertex2f(x + frameRenderWidth, y + frameRenderHeight);
+        GL11.glTexCoord2f(1.0F, 0.0F);
+        GL11.glVertex2f(x + frameRenderWidth, y);
+        GL11.glEnd();
         GL11.glDisable(GL11.GL_BLEND);
     }
 
@@ -324,7 +364,7 @@ public class ExampleScreen extends GuiScreen {
         if (isInBrowserBounds(mouseX, mouseY)) {
             browser.sendMouseRelease(mouseX(mouseX), mouseY(mouseY), state);
             browser.setFocus(true);
-        } else if (urlBox != null) {
+        } else if (urlBox != null && !isInUrlBoxBounds(mouseX, mouseY)) {
             urlBox.setFocused(false);
         }
     }
@@ -332,17 +372,25 @@ public class ExampleScreen extends GuiScreen {
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+        if (browser != null && isInBrowserBounds(mouseX, mouseY)) {
+            browser.sendMouseMove(mouseX(mouseX), mouseY(mouseY));
+        }
     }
 
     @Override
     public void handleMouseInput() {
         super.handleMouseInput();
         int dw = org.lwjgl.input.Mouse.getEventDWheel();
+        int i = org.lwjgl.input.Mouse.getEventX() * this.width / this.mc.displayWidth;
+        int j = this.height - org.lwjgl.input.Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+
         if (dw != 0) {
-            int i = org.lwjgl.input.Mouse.getEventX() * this.width / this.mc.displayWidth;
-            int j = this.height - org.lwjgl.input.Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
             if (isInBrowserBounds(i, j)) {
                 browser.sendMouseWheel(mouseX(i), mouseY(j), dw > 0 ? 1 : -1, 0);
+            }
+        } else if (org.lwjgl.input.Mouse.getEventButton() == -1) {
+            if (browser != null && isInBrowserBounds(i, j)) {
+                browser.sendMouseMove(mouseX(i), mouseY(j));
             }
         }
     }

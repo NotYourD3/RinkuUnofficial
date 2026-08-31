@@ -299,6 +299,9 @@ public final class Rinku {
         return browser;
     }
 
+    private static final int DEFAULT_DESKTOP_VIEWPORT_WIDTH = 1280;
+    private static final int DEFAULT_DESKTOP_VIEWPORT_HEIGHT = 720;
+
     private static RinkuBrowser createBrowserImmediately(String url, boolean transparent) {
         RinkuClient currentClient = client;
         if (currentClient == null) {
@@ -307,6 +310,7 @@ public final class Rinku {
         RinkuBrowser browser = new RinkuBrowser(currentClient, url, transparent);
         browser.setCloseAllowed();
         browser.createImmediately();
+        browser.resize(DEFAULT_DESKTOP_VIEWPORT_WIDTH, DEFAULT_DESKTOP_VIEWPORT_HEIGHT);
         return browser;
     }
 
