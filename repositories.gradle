@@ -1,0 +1,39 @@
+// Add any additional repositories for your dependencies here.
+// JCEF (Java Chromium Embedded Framework) Ivy repository — directly resolves
+// jcef-rinku.jar and jcef-rinku-sources.jar from GitHub Releases.
+// Coordinate format: java-cef:jcef-rinku:<40-char commit>[@jar | :sources@jar]
+
+repositories {
+
+    // ------------------------------------------------------------------
+    // NotYourD3 JCEF GitHub Releases (via synthetic Ivy layout)
+    // Only artifacts under group "java-cef" are routed through here.
+    // ------------------------------------------------------------------
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = "NotYourD3 JCEF GitHub Releases"
+                url = uri("https://github.com/NotYourD3/jcef-rinku/releases/download")
+                patternLayout {
+                    // GitHub publishes: java-cef-<commit>/jcef-rinku[-sources].jar
+                    // Gradle coordinate java-cef:jcef-rinku:<commit> maps:
+                    //   [organization] => java-cef
+                    //   [revision]     => <commit>
+                    //   [module]       => jcef-rinku
+                    //   [classifier]   => sources (optional)
+                    //   [ext]          => jar
+                    artifact "[organization]-[revision]/[module](-[classifier]).[ext]"
+                }
+                metadataSources {
+                    artifact() // skip ivy.xml / pom.xml; artifact presence is enough
+                }
+            }
+        }
+        filter {
+            includeGroup("java-cef")
+        }
+    }
+
+    // Standard JCEF upstream mirror — optional fallback at runtime download level only,
+    // build still strictly uses the GitHub Release pinned by jcef_commit above.
+}
