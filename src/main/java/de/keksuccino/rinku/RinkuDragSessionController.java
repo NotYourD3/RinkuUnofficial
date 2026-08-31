@@ -6,12 +6,14 @@ import java.util.function.Consumer;
 /**
  * Serializes one emulated off-screen drag session without depending on CEF's native runtime.
  *
- * <p>Publication is changed under {@link #lock}, but native callbacks and disposal always run
+ * <p>
+ * Publication is changed under {@link #lock}, but native callbacks and disposal always run
  * without it held. Callbacks may synchronously wait for another thread that re-enters Java; the
  * explicit {@link Phase} makes those lifecycle calls harmless without creating a cross-thread
  * deadlock. No resource is disposed until every required terminal callback has been attempted.
  */
 final class RinkuDragSessionController<T> {
+
     private final Object lock = new Object();
     private final Consumer<? super T> disposer;
     private final int noCursorOverride;
@@ -28,7 +30,8 @@ final class RinkuDragSessionController<T> {
     /**
      * Provisions a new session and retires any previously handled session first.
      *
-     * <p>Ownership transfers to this controller only when this method returns normally. A normal
+     * <p>
+     * Ownership transfers to this controller only when this method returns normally. A normal
      * {@code false} return therefore disposes {@code resource}, while an exception leaves the
      * provisional resource for the callback delegator to dispose under its exceptional-transfer
      * contract.
@@ -180,7 +183,8 @@ final class RinkuDragSessionController<T> {
     int virtualCursor(int actualCursor) {
         synchronized (lock) {
             Session<T> session = visibleSession();
-            return session == null || session.cursorOverride == noCursorOverride ? actualCursor : session.cursorOverride;
+            return session == null || session.cursorOverride == noCursorOverride ? actualCursor
+                : session.cursorOverride;
         }
     }
 
@@ -246,6 +250,7 @@ final class RinkuDragSessionController<T> {
     }
 
     interface Callbacks<T> {
+
         void targetEnter(T resource, int x, int y, int modifiers, int allowedOperations);
 
         void targetDrop(int x, int y, int modifiers);
@@ -264,6 +269,7 @@ final class RinkuDragSessionController<T> {
     }
 
     private static final class Session<T> {
+
         private final T resource;
         private final int allowedOperations;
         private int operation;

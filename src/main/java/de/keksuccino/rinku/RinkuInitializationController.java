@@ -2,6 +2,7 @@ package de.keksuccino.rinku;
 
 /** Coordinates Rinku's one-shot CEF process lifecycle. */
 final class RinkuInitializationController {
+
     enum BeginResult {
         STARTED,
         ALREADY_INITIALIZED,

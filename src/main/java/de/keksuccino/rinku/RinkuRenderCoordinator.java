@@ -1,9 +1,9 @@
 package de.keksuccino.rinku;
 
+import java.lang.reflect.Method;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.lang.reflect.Method;
 
 public final class RinkuRenderCoordinator {
 
@@ -32,6 +32,7 @@ public final class RinkuRenderCoordinator {
     }
 
     private static final class Holder {
+
         static final Method PUMP_METHOD;
         static final Method SHUTDOWN_METHOD;
         static {

@@ -1,11 +1,5 @@
 package de.keksuccino.rinku;
 
-import de.keksuccino.rinku.binarydownload.RinkuDownloader;
-import de.keksuccino.rinku.util.GameDirectoryUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.cef.CefSettings;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -14,7 +8,15 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.cef.CefSettings;
+
+import de.keksuccino.rinku.binarydownload.RinkuDownloader;
+import de.keksuccino.rinku.util.GameDirectoryUtils;
+
 public class RinkuSettings {
+
     private static final Logger LOGGER = LogManager.getLogger("RinkuSettings");
 
     static final int MIN_DOWNLOAD_TIMEOUT_MS = 1_000;
@@ -39,7 +41,7 @@ public class RinkuSettings {
     private static final boolean DEFAULT_CEF_DISABLE_WEB_SECURITY = true;
     private static final boolean DEFAULT_CEF_ENABLE_WIDEVINE_CDM = true;
     // Keep these as plain String names and do NOT write:
-    //     private static final CefSettings.LogSeverity X = CefSettings.LogSeverity.LOGSEVERITY_DISABLE;
+    // private static final CefSettings.LogSeverity X = CefSettings.LogSeverity.LOGSEVERITY_DISABLE;
     // Referencing a static enum constant in <clinit> forces the JVM to resolve org.cef.CefSettings$LogSeverity
     // while RinkuSettings is still initializing, which happens BEFORE the JCEF downloader has a chance to
     // install the native binaries and produced NoClassDefFoundError: org/cef/CefSettings$LogSeverity.
@@ -113,7 +115,11 @@ public class RinkuSettings {
     }
 
     public void setDownloadMirror(String downloadMirror) {
-        this.downloadMirror = parseMirror(downloadMirror, DEFAULT_DOWNLOAD_MIRROR, "download-mirror", downloadMirrorPolicy == RinkuDownloader.MirrorPolicy.CONFIGURED_ONLY);
+        this.downloadMirror = parseMirror(
+            downloadMirror,
+            DEFAULT_DOWNLOAD_MIRROR,
+            "download-mirror",
+            downloadMirrorPolicy == RinkuDownloader.MirrorPolicy.CONFIGURED_ONLY);
         saveAsync();
     }
 
@@ -122,7 +128,8 @@ public class RinkuSettings {
     }
 
     public void setDownloadMirrorPolicy(RinkuDownloader.MirrorPolicy downloadMirrorPolicy) {
-        this.downloadMirrorPolicy = downloadMirrorPolicy == null ? DEFAULT_DOWNLOAD_MIRROR_POLICY : downloadMirrorPolicy;
+        this.downloadMirrorPolicy = downloadMirrorPolicy == null ? DEFAULT_DOWNLOAD_MIRROR_POLICY
+            : downloadMirrorPolicy;
         saveAsync();
     }
 
@@ -140,7 +147,12 @@ public class RinkuSettings {
     }
 
     public void setDownloadConnectTimeoutMs(int downloadConnectTimeoutMs) {
-        this.downloadConnectTimeoutMs = clampInt(downloadConnectTimeoutMs, MIN_DOWNLOAD_TIMEOUT_MS, MAX_DOWNLOAD_TIMEOUT_MS, DEFAULT_DOWNLOAD_CONNECT_TIMEOUT_MS, "download-connect-timeout-ms");
+        this.downloadConnectTimeoutMs = clampInt(
+            downloadConnectTimeoutMs,
+            MIN_DOWNLOAD_TIMEOUT_MS,
+            MAX_DOWNLOAD_TIMEOUT_MS,
+            DEFAULT_DOWNLOAD_CONNECT_TIMEOUT_MS,
+            "download-connect-timeout-ms");
         saveAsync();
     }
 
@@ -149,7 +161,12 @@ public class RinkuSettings {
     }
 
     public void setDownloadReadTimeoutMs(int downloadReadTimeoutMs) {
-        this.downloadReadTimeoutMs = clampInt(downloadReadTimeoutMs, MIN_DOWNLOAD_TIMEOUT_MS, MAX_DOWNLOAD_TIMEOUT_MS, DEFAULT_DOWNLOAD_READ_TIMEOUT_MS, "download-read-timeout-ms");
+        this.downloadReadTimeoutMs = clampInt(
+            downloadReadTimeoutMs,
+            MIN_DOWNLOAD_TIMEOUT_MS,
+            MAX_DOWNLOAD_TIMEOUT_MS,
+            DEFAULT_DOWNLOAD_READ_TIMEOUT_MS,
+            "download-read-timeout-ms");
         saveAsync();
     }
 
@@ -158,7 +175,12 @@ public class RinkuSettings {
     }
 
     public void setDownloadMaxArchiveBytes(long downloadMaxArchiveBytes) {
-        this.downloadMaxArchiveBytes = clampLong(downloadMaxArchiveBytes, MIN_DOWNLOAD_ARCHIVE_BYTES, MAX_DOWNLOAD_ARCHIVE_BYTES, DEFAULT_DOWNLOAD_MAX_ARCHIVE_BYTES, "download-max-archive-bytes");
+        this.downloadMaxArchiveBytes = clampLong(
+            downloadMaxArchiveBytes,
+            MIN_DOWNLOAD_ARCHIVE_BYTES,
+            MAX_DOWNLOAD_ARCHIVE_BYTES,
+            DEFAULT_DOWNLOAD_MAX_ARCHIVE_BYTES,
+            "download-max-archive-bytes");
         saveAsync();
     }
 
@@ -167,7 +189,12 @@ public class RinkuSettings {
     }
 
     public void setDownloadMaxChecksumBytes(long downloadMaxChecksumBytes) {
-        this.downloadMaxChecksumBytes = clampLong(downloadMaxChecksumBytes, MIN_DOWNLOAD_CHECKSUM_BYTES, MAX_DOWNLOAD_CHECKSUM_BYTES, DEFAULT_DOWNLOAD_MAX_CHECKSUM_BYTES, "download-max-checksum-bytes");
+        this.downloadMaxChecksumBytes = clampLong(
+            downloadMaxChecksumBytes,
+            MIN_DOWNLOAD_CHECKSUM_BYTES,
+            MAX_DOWNLOAD_CHECKSUM_BYTES,
+            DEFAULT_DOWNLOAD_MAX_CHECKSUM_BYTES,
+            "download-max-checksum-bytes");
         saveAsync();
     }
 
@@ -176,7 +203,12 @@ public class RinkuSettings {
     }
 
     public void setDownloadMaxExtractedBytes(long downloadMaxExtractedBytes) {
-        this.downloadMaxExtractedBytes = clampLong(downloadMaxExtractedBytes, MIN_DOWNLOAD_EXTRACTED_BYTES, MAX_DOWNLOAD_EXTRACTED_BYTES, DEFAULT_DOWNLOAD_MAX_EXTRACTED_BYTES, "download-max-extracted-bytes");
+        this.downloadMaxExtractedBytes = clampLong(
+            downloadMaxExtractedBytes,
+            MIN_DOWNLOAD_EXTRACTED_BYTES,
+            MAX_DOWNLOAD_EXTRACTED_BYTES,
+            DEFAULT_DOWNLOAD_MAX_EXTRACTED_BYTES,
+            "download-max-extracted-bytes");
         saveAsync();
     }
 
@@ -229,20 +261,23 @@ public class RinkuSettings {
     }
 
     public void setNativeCefLogSeverity(CefSettings.LogSeverity nativeCefLogSeverity) {
-        this.nativeCefLogSeverityName = nativeCefLogSeverity == null
-                ? DEFAULT_NATIVE_CEF_LOG_SEVERITY_NAME
-                : normalizeLogSeverityName(nativeCefLogSeverity.name(), DEFAULT_NATIVE_CEF_LOG_SEVERITY_NAME);
+        this.nativeCefLogSeverityName = nativeCefLogSeverity == null ? DEFAULT_NATIVE_CEF_LOG_SEVERITY_NAME
+            : normalizeLogSeverityName(nativeCefLogSeverity.name(), DEFAULT_NATIVE_CEF_LOG_SEVERITY_NAME);
         saveAsync();
     }
 
     public CefSettings.LogSeverity getConsoleLogForwardingMinSeverity() {
-        return logSeverityFromName(consoleLogForwardingMinSeverityName, DEFAULT_CONSOLE_LOG_FORWARDING_MIN_SEVERITY_NAME);
+        return logSeverityFromName(
+            consoleLogForwardingMinSeverityName,
+            DEFAULT_CONSOLE_LOG_FORWARDING_MIN_SEVERITY_NAME);
     }
 
     public void setConsoleLogForwardingMinSeverity(CefSettings.LogSeverity consoleLogForwardingMinSeverity) {
         this.consoleLogForwardingMinSeverityName = consoleLogForwardingMinSeverity == null
-                ? DEFAULT_CONSOLE_LOG_FORWARDING_MIN_SEVERITY_NAME
-                : normalizeLogSeverityName(consoleLogForwardingMinSeverity.name(), DEFAULT_CONSOLE_LOG_FORWARDING_MIN_SEVERITY_NAME);
+            ? DEFAULT_CONSOLE_LOG_FORWARDING_MIN_SEVERITY_NAME
+            : normalizeLogSeverityName(
+                consoleLogForwardingMinSeverity.name(),
+                DEFAULT_CONSOLE_LOG_FORWARDING_MIN_SEVERITY_NAME);
         saveAsync();
     }
 
@@ -261,7 +296,12 @@ public class RinkuSettings {
     }
 
     public void setBrowserPreloadTransparentPoolSize(int browserPreloadTransparentPoolSize) {
-        this.browserPreloadTransparentPoolSize = clampInt(browserPreloadTransparentPoolSize, MIN_BROWSER_PRELOAD_POOL_SIZE, MAX_BROWSER_PRELOAD_POOL_SIZE, DEFAULT_BROWSER_PRELOAD_TRANSPARENT_POOL_SIZE, "browser-preload-transparent-pool-size");
+        this.browserPreloadTransparentPoolSize = clampInt(
+            browserPreloadTransparentPoolSize,
+            MIN_BROWSER_PRELOAD_POOL_SIZE,
+            MAX_BROWSER_PRELOAD_POOL_SIZE,
+            DEFAULT_BROWSER_PRELOAD_TRANSPARENT_POOL_SIZE,
+            "browser-preload-transparent-pool-size");
         saveAsync();
         Rinku.refreshPreloadedBrowserPool();
     }
@@ -271,28 +311,33 @@ public class RinkuSettings {
     }
 
     public void setBrowserPreloadOpaquePoolSize(int browserPreloadOpaquePoolSize) {
-        this.browserPreloadOpaquePoolSize = clampInt(browserPreloadOpaquePoolSize, MIN_BROWSER_PRELOAD_POOL_SIZE, MAX_BROWSER_PRELOAD_POOL_SIZE, DEFAULT_BROWSER_PRELOAD_OPAQUE_POOL_SIZE, "browser-preload-opaque-pool-size");
+        this.browserPreloadOpaquePoolSize = clampInt(
+            browserPreloadOpaquePoolSize,
+            MIN_BROWSER_PRELOAD_POOL_SIZE,
+            MAX_BROWSER_PRELOAD_POOL_SIZE,
+            DEFAULT_BROWSER_PRELOAD_OPAQUE_POOL_SIZE,
+            "browser-preload-opaque-pool-size");
         saveAsync();
         Rinku.refreshPreloadedBrowserPool();
     }
 
     public RinkuDownloader.DownloadPolicy createDownloadPolicy() {
         return new RinkuDownloader.DownloadPolicy(
-                downloadMirrorPolicy,
-                enforceDownloadChecksums,
-                downloadConnectTimeoutMs,
-                downloadReadTimeoutMs,
-                downloadMaxArchiveBytes,
-                downloadMaxChecksumBytes,
-                downloadMaxExtractedBytes
-        );
+            downloadMirrorPolicy,
+            enforceDownloadChecksums,
+            downloadConnectTimeoutMs,
+            downloadReadTimeoutMs,
+            downloadMaxArchiveBytes,
+            downloadMaxChecksumBytes,
+            downloadMaxExtractedBytes);
     }
 
     public void saveAsync() {
         synchronized (asyncSaveLock) {
             // Every setter may request a save in the same frame. Chaining writes prevents concurrent
             // FileOutputStreams from corrupting rinku.properties while retaining non-blocking setters.
-            pendingSave = pendingSave.exceptionally(failure -> null).thenRunAsync(this::saveQuietly);
+            pendingSave = pendingSave.exceptionally(failure -> null)
+                .thenRunAsync(this::saveQuietly);
         }
     }
 
@@ -307,7 +352,8 @@ public class RinkuSettings {
     public void save() throws IOException {
         File file = getSettingsFile();
 
-        file.getParentFile().mkdirs();
+        file.getParentFile()
+            .mkdirs();
 
         if (!file.exists()) {
             file.createNewFile();
@@ -330,7 +376,8 @@ public class RinkuSettings {
         properties.setProperty("cef-native-log-severity", nativeCefLogSeverityName);
         properties.setProperty("cef-console-log-forwarding-min-severity", consoleLogForwardingMinSeverityName);
         properties.setProperty("browser-preload-enabled", String.valueOf(browserPreloadEnabled));
-        properties.setProperty("browser-preload-transparent-pool-size", String.valueOf(browserPreloadTransparentPoolSize));
+        properties
+            .setProperty("browser-preload-transparent-pool-size", String.valueOf(browserPreloadTransparentPoolSize));
         properties.setProperty("browser-preload-opaque-pool-size", String.valueOf(browserPreloadOpaquePoolSize));
 
         try (FileOutputStream output = new FileOutputStream(file)) {
@@ -354,38 +401,80 @@ public class RinkuSettings {
         resetDefaults();
 
         skipDownload = parseBoolean(properties, "skip-download", skipDownload);
-        downloadMirrorPolicy = parseMirrorPolicy(properties.getProperty("download-mirror-policy"), downloadMirrorPolicy);
-        downloadMirror = parseMirror(properties.getProperty("download-mirror"), downloadMirror, "download-mirror", downloadMirrorPolicy == RinkuDownloader.MirrorPolicy.CONFIGURED_ONLY);
+        downloadMirrorPolicy = parseMirrorPolicy(
+            properties.getProperty("download-mirror-policy"),
+            downloadMirrorPolicy);
+        downloadMirror = parseMirror(
+            properties.getProperty("download-mirror"),
+            downloadMirror,
+            "download-mirror",
+            downloadMirrorPolicy == RinkuDownloader.MirrorPolicy.CONFIGURED_ONLY);
         enforceDownloadChecksums = parseBoolean(properties, "enforce-download-checksums", enforceDownloadChecksums);
-        downloadConnectTimeoutMs = parseInt(properties, "download-connect-timeout-ms", downloadConnectTimeoutMs, MIN_DOWNLOAD_TIMEOUT_MS, MAX_DOWNLOAD_TIMEOUT_MS);
-        downloadReadTimeoutMs = parseInt(properties, "download-read-timeout-ms", downloadReadTimeoutMs, MIN_DOWNLOAD_TIMEOUT_MS, MAX_DOWNLOAD_TIMEOUT_MS);
-        downloadMaxArchiveBytes = parseLong(properties, "download-max-archive-bytes", downloadMaxArchiveBytes, MIN_DOWNLOAD_ARCHIVE_BYTES, MAX_DOWNLOAD_ARCHIVE_BYTES);
-        downloadMaxChecksumBytes = parseLong(properties, "download-max-checksum-bytes", downloadMaxChecksumBytes, MIN_DOWNLOAD_CHECKSUM_BYTES, MAX_DOWNLOAD_CHECKSUM_BYTES);
-        downloadMaxExtractedBytes = parseLong(properties, "download-max-extracted-bytes", downloadMaxExtractedBytes, MIN_DOWNLOAD_EXTRACTED_BYTES, MAX_DOWNLOAD_EXTRACTED_BYTES);
+        downloadConnectTimeoutMs = parseInt(
+            properties,
+            "download-connect-timeout-ms",
+            downloadConnectTimeoutMs,
+            MIN_DOWNLOAD_TIMEOUT_MS,
+            MAX_DOWNLOAD_TIMEOUT_MS);
+        downloadReadTimeoutMs = parseInt(
+            properties,
+            "download-read-timeout-ms",
+            downloadReadTimeoutMs,
+            MIN_DOWNLOAD_TIMEOUT_MS,
+            MAX_DOWNLOAD_TIMEOUT_MS);
+        downloadMaxArchiveBytes = parseLong(
+            properties,
+            "download-max-archive-bytes",
+            downloadMaxArchiveBytes,
+            MIN_DOWNLOAD_ARCHIVE_BYTES,
+            MAX_DOWNLOAD_ARCHIVE_BYTES);
+        downloadMaxChecksumBytes = parseLong(
+            properties,
+            "download-max-checksum-bytes",
+            downloadMaxChecksumBytes,
+            MIN_DOWNLOAD_CHECKSUM_BYTES,
+            MAX_DOWNLOAD_CHECKSUM_BYTES);
+        downloadMaxExtractedBytes = parseLong(
+            properties,
+            "download-max-extracted-bytes",
+            downloadMaxExtractedBytes,
+            MIN_DOWNLOAD_EXTRACTED_BYTES,
+            MAX_DOWNLOAD_EXTRACTED_BYTES);
         userAgent = parseUserAgent(properties.getProperty("user-agent"));
         useCache = parseBoolean(properties, "use-cache", useCache);
         cefDisableWebSecurity = parseBoolean(properties, "cef-disable-web-security", cefDisableWebSecurity);
         cefEnableWidevineCdm = parseBoolean(properties, "cef-enable-widevine-cdm", cefEnableWidevineCdm);
         nativeCefLogSeverityName = parseLogSeverityName(
-                properties.getProperty("cef-native-log-severity"),
-                nativeCefLogSeverityName,
-                "cef-native-log-severity"
-        );
+            properties.getProperty("cef-native-log-severity"),
+            nativeCefLogSeverityName,
+            "cef-native-log-severity");
         consoleLogForwardingMinSeverityName = parseLogSeverityName(
-                properties.getProperty("cef-console-log-forwarding-min-severity"),
-                consoleLogForwardingMinSeverityName,
-                "cef-console-log-forwarding-min-severity"
-        );
+            properties.getProperty("cef-console-log-forwarding-min-severity"),
+            consoleLogForwardingMinSeverityName,
+            "cef-console-log-forwarding-min-severity");
         browserPreloadEnabled = parseBoolean(properties, "browser-preload-enabled", browserPreloadEnabled);
-        browserPreloadTransparentPoolSize = parseInt(properties, "browser-preload-transparent-pool-size", browserPreloadTransparentPoolSize, MIN_BROWSER_PRELOAD_POOL_SIZE, MAX_BROWSER_PRELOAD_POOL_SIZE);
-        browserPreloadOpaquePoolSize = parseInt(properties, "browser-preload-opaque-pool-size", browserPreloadOpaquePoolSize, MIN_BROWSER_PRELOAD_POOL_SIZE, MAX_BROWSER_PRELOAD_POOL_SIZE);
+        browserPreloadTransparentPoolSize = parseInt(
+            properties,
+            "browser-preload-transparent-pool-size",
+            browserPreloadTransparentPoolSize,
+            MIN_BROWSER_PRELOAD_POOL_SIZE,
+            MAX_BROWSER_PRELOAD_POOL_SIZE);
+        browserPreloadOpaquePoolSize = parseInt(
+            properties,
+            "browser-preload-opaque-pool-size",
+            browserPreloadOpaquePoolSize,
+            MIN_BROWSER_PRELOAD_POOL_SIZE,
+            MAX_BROWSER_PRELOAD_POOL_SIZE);
     }
 
     private static RinkuDownloader.MirrorPolicy parseMirrorPolicy(String raw, RinkuDownloader.MirrorPolicy fallback) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return fallback;
         }
-        String normalized = raw.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        String normalized = raw.trim()
+            .toUpperCase(Locale.ROOT)
+            .replace('-', '_');
         try {
             return RinkuDownloader.MirrorPolicy.valueOf(normalized);
         } catch (IllegalArgumentException e) {
@@ -395,10 +484,13 @@ public class RinkuSettings {
     }
 
     private static String normalizeLogSeverityName(String raw, String fallbackDefaultName) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return fallbackDefaultName;
         }
-        String normalized = raw.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        String normalized = raw.trim()
+            .toUpperCase(Locale.ROOT)
+            .replace('-', '_');
         if ("OFF".equals(normalized) || "NONE".equals(normalized)) {
             return "LOGSEVERITY_DISABLE";
         }
@@ -409,7 +501,8 @@ public class RinkuSettings {
     }
 
     private static String parseLogSeverityName(String raw, String fallback, String key) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return fallback;
         }
         String candidate = normalizeLogSeverityName(raw, null);
@@ -435,15 +528,23 @@ public class RinkuSettings {
 
     private static boolean parseBoolean(Properties properties, String key, boolean fallback) {
         String raw = properties.getProperty(key);
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return fallback;
         }
 
-        String normalized = raw.trim().toLowerCase(Locale.ROOT);
-        if ("true".equals(normalized) || "1".equals(normalized) || "yes".equals(normalized) || "y".equals(normalized) || "on".equals(normalized)) {
+        String normalized = raw.trim()
+            .toLowerCase(Locale.ROOT);
+        if ("true".equals(normalized) || "1".equals(normalized)
+            || "yes".equals(normalized)
+            || "y".equals(normalized)
+            || "on".equals(normalized)) {
             return true;
         }
-        if ("false".equals(normalized) || "0".equals(normalized) || "no".equals(normalized) || "n".equals(normalized) || "off".equals(normalized)) {
+        if ("false".equals(normalized) || "0".equals(normalized)
+            || "no".equals(normalized)
+            || "n".equals(normalized)
+            || "off".equals(normalized)) {
             return false;
         }
         LOGGER.warn("Invalid rinku.properties value for {}: {}", key, raw);
@@ -452,7 +553,8 @@ public class RinkuSettings {
 
     private static int parseInt(Properties properties, String key, int fallback, int min, int max) {
         String raw = properties.getProperty(key);
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return fallback;
         }
         try {
@@ -465,7 +567,8 @@ public class RinkuSettings {
 
     private static long parseLong(Properties properties, String key, long fallback, long min, long max) {
         String raw = properties.getProperty(key);
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             return fallback;
         }
         try {
@@ -501,9 +604,11 @@ public class RinkuSettings {
     }
 
     private static String parseMirror(String raw, String fallback, String key, boolean strictConfiguredOnly) {
-        if (raw == null || raw.trim().isEmpty()) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
             if (strictConfiguredOnly) {
-                throw new IllegalArgumentException("Rinku settings value '" + key + "' cannot be blank when the mirror policy is CONFIGURED_ONLY");
+                throw new IllegalArgumentException(
+                    "Rinku settings value '" + key + "' cannot be blank when the mirror policy is CONFIGURED_ONLY");
             }
             return fallback;
         }
@@ -515,7 +620,9 @@ public class RinkuSettings {
             RinkuDownloadMirror.parse(candidate);
         } catch (IllegalArgumentException e) {
             if (strictConfiguredOnly) {
-                throw new IllegalArgumentException("Rinku settings value '" + key + "' is not a valid URL for CONFIGURED_ONLY: '" + raw + "'", e);
+                throw new IllegalArgumentException(
+                    "Rinku settings value '" + key + "' is not a valid URL for CONFIGURED_ONLY: '" + raw + "'",
+                    e);
             }
             LOGGER.warn("Ignoring invalid {} in rinku.properties: {}", key, raw);
             return fallback;
@@ -532,6 +639,10 @@ public class RinkuSettings {
     }
 
     private static File getSettingsFile() {
-        return GameDirectoryUtils.getGameDirectory().toPath().resolve("config").resolve("rinku.properties").toFile();
+        return GameDirectoryUtils.getGameDirectory()
+            .toPath()
+            .resolve("config")
+            .resolve("rinku.properties")
+            .toFile();
     }
 }

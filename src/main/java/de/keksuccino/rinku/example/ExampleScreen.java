@@ -1,23 +1,23 @@
 package de.keksuccino.rinku.example;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import de.keksuccino.rinku.Rinku;
-import de.keksuccino.rinku.RinkuBrowser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Util;
+
 import org.cef.browser.CefBrowser;
 import org.cef.browser.CefFrame;
 import org.cef.handler.CefDisplayHandler;
 import org.cef.handler.CefDisplayHandlerAdapter;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import de.keksuccino.rinku.Rinku;
+import de.keksuccino.rinku.RinkuBrowser;
 
 @SideOnly(Side.CLIENT)
 public class ExampleScreen extends GuiScreen {
@@ -71,6 +71,7 @@ public class ExampleScreen extends GuiScreen {
         }
 
         addressBarDisplayHandler = new CefDisplayHandlerAdapter() {
+
             @Override
             public void onAddressChange(CefBrowser cefBrowser, CefFrame frame, String url) {
                 if (browser == null || cefBrowser == null || frame == null || !frame.isMain()) {
@@ -80,21 +81,24 @@ public class ExampleScreen extends GuiScreen {
                     return;
                 }
 
-                Minecraft.getMinecraft().func_152344_a(() -> {
-                    if (Minecraft.getMinecraft().currentScreen != ExampleScreen.this || urlBox == null || url == null) {
-                        return;
-                    }
-                    // Don't overwrite the address bar while the user is actively editing it.
-                    if (urlBox.isFocused()) {
-                        return;
-                    }
-                    if (!url.equals(urlBox.getText())) {
-                        urlBox.setText(url);
-                    }
-                });
+                Minecraft.getMinecraft()
+                    .func_152344_a(() -> {
+                        if (Minecraft.getMinecraft().currentScreen != ExampleScreen.this || urlBox == null
+                            || url == null) {
+                            return;
+                        }
+                        // Don't overwrite the address bar while the user is actively editing it.
+                        if (urlBox.isFocused()) {
+                            return;
+                        }
+                        if (!url.equals(urlBox.getText())) {
+                            urlBox.setText(url);
+                        }
+                    });
             }
         };
-        Rinku.getClient().addDisplayHandler(addressBarDisplayHandler);
+        Rinku.getClient()
+            .addDisplayHandler(addressBarDisplayHandler);
     }
 
     private void initNavigationWidgets() {
@@ -141,7 +145,9 @@ public class ExampleScreen extends GuiScreen {
     private boolean isInBrowserBounds(double x, double y) {
         int browserX = getBrowserX();
         int browserY = getBrowserY();
-        return x >= browserX && y >= browserY && x < (browserX + getBrowserWidth()) && y < (browserY + getBrowserHeight());
+        return x >= browserX && y >= browserY
+            && x < (browserX + getBrowserWidth())
+            && y < (browserY + getBrowserHeight());
     }
 
     private boolean isInUrlBoxBounds(double x, double y) {
@@ -149,7 +155,8 @@ public class ExampleScreen extends GuiScreen {
             return false;
         }
         return x >= urlBox.xPosition && y >= urlBox.yPosition
-                && x < (urlBox.xPosition + urlBox.width) && y < (urlBox.yPosition + urlBox.height);
+            && x < (urlBox.xPosition + urlBox.width)
+            && y < (urlBox.yPosition + urlBox.height);
     }
 
     private static final int RENDER_SCALE_FACTOR = 4;
@@ -192,7 +199,8 @@ public class ExampleScreen extends GuiScreen {
     @Override
     public void onGuiClosed() {
         if (addressBarDisplayHandler != null && Rinku.isInitialized()) {
-            Rinku.getClient().removeDisplayHandler(addressBarDisplayHandler);
+            Rinku.getClient()
+                .removeDisplayHandler(addressBarDisplayHandler);
         }
         addressBarDisplayHandler = null;
         if (browser != null) {
@@ -297,7 +305,8 @@ public class ExampleScreen extends GuiScreen {
         int x = getBrowserX();
         int y = getBrowserY();
 
-        this.mc.getTextureManager().bindTexture(textureLocation);
+        this.mc.getTextureManager()
+            .bindTexture(textureLocation);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -339,8 +348,7 @@ public class ExampleScreen extends GuiScreen {
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         try {
             super.mouseClicked(mouseX, mouseY, mouseButton);
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
 
         if (urlBox != null) {
             urlBox.mouseClicked(mouseX, mouseY, mouseButton);

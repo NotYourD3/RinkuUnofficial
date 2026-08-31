@@ -17,7 +17,8 @@ public final class RinkuDownloadMirror {
     }
 
     public static RinkuDownloadMirror parse(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.trim()
+            .isEmpty()) {
             throw new IllegalArgumentException("JCEF mirror URI is missing");
         }
 
@@ -30,7 +31,10 @@ public final class RinkuDownloadMirror {
             throw new IllegalArgumentException("JCEF mirror URI is malformed");
         }
         String host = parsed.getHost();
-        if (parsed.isOpaque() || !"https".equalsIgnoreCase(parsed.getScheme()) || host == null || host.trim().isEmpty()) {
+        if (parsed.isOpaque() || !"https".equalsIgnoreCase(parsed.getScheme())
+            || host == null
+            || host.trim()
+                .isEmpty()) {
             throw new IllegalArgumentException("JCEF mirror must be an absolute HTTPS URI with a host");
         }
         if (parsed.getRawUserInfo() != null || parsed.getRawQuery() != null || parsed.getRawFragment() != null) {
@@ -49,7 +53,15 @@ public final class RinkuDownloadMirror {
 
         try {
             int canonicalPort = parsed.getPort() == 443 ? -1 : parsed.getPort();
-            URI canonical = new URI("https", null, parsed.getHost().toLowerCase(Locale.ROOT), canonicalPort, path, null, null);
+            URI canonical = new URI(
+                "https",
+                null,
+                parsed.getHost()
+                    .toLowerCase(Locale.ROOT),
+                canonicalPort,
+                path,
+                null,
+                null);
             return new RinkuDownloadMirror(canonical);
         } catch (URISyntaxException impossible) {
             throw new IllegalArgumentException("JCEF mirror could not be normalized", impossible);
@@ -120,7 +132,11 @@ public final class RinkuDownloadMirror {
 
     private static void validatePathSegment(String value, String description) {
         Objects.requireNonNull(value, description);
-        if (value.trim().isEmpty() || value.equals(".") || value.equals("..") || !SAFE_PATH_SEGMENT.matcher(value).matches()) {
+        if (value.trim()
+            .isEmpty() || value.equals(".")
+            || value.equals("..")
+            || !SAFE_PATH_SEGMENT.matcher(value)
+                .matches()) {
             throw new IllegalArgumentException("Invalid JCEF " + description);
         }
         for (int index = 0; index < value.length(); index++) {

@@ -1,13 +1,15 @@
 package de.keksuccino.rinku;
 
 public final class MIMEUtil {
+
     public static String mimeFromExtension(String ext) {
-        // TODO: might want to port https://github.com/CinemaMod/mcef/blob/master-1.19.2/src/main/resources/assets/mcef/mime.types
-        //       adding cases to the switch isn't the most convenient thing
-//        ext = ext.toLowerCase(Locale.US);
-//        String ret = mimeTypeMap.get(ext);
-//        if (ret != null)
-//            return ret;
+        // TODO: might want to port
+        // https://github.com/CinemaMod/mcef/blob/master-1.19.2/src/main/resources/assets/mcef/mime.types
+        // adding cases to the switch isn't the most convenient thing
+        // ext = ext.toLowerCase(Locale.US);
+        // String ret = mimeTypeMap.get(ext);
+        // if (ret != null)
+        // return ret;
 
         // If the mimeTypeMap couldn't be loaded, fall back to common things
         return switch (ext) {

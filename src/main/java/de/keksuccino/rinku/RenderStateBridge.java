@@ -1,8 +1,9 @@
 package de.keksuccino.rinku;
 
+import net.minecraft.client.Minecraft;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.Minecraft;
 
 @SideOnly(Side.CLIENT)
 public final class RenderStateBridge {
@@ -12,7 +13,8 @@ public final class RenderStateBridge {
     static {
         Thread t = null;
         try {
-            t = Minecraft.class.getMethod("getMinecraft").getDeclaringClass() != null ? Thread.currentThread() : null;
+            t = Minecraft.class.getMethod("getMinecraft")
+                .getDeclaringClass() != null ? Thread.currentThread() : null;
         } catch (Throwable ignored) {}
         mainThread = t != null ? t : Thread.currentThread();
     }
@@ -20,9 +22,9 @@ public final class RenderStateBridge {
     private RenderStateBridge() {}
 
     public static boolean isOnRenderThread() {
-        return Thread.currentThread().getId() == mainThread.getId();
+        return Thread.currentThread()
+            .getId() == mainThread.getId();
     }
 
-    public static void assertOnRenderThread() {
-    }
+    public static void assertOnRenderThread() {}
 }

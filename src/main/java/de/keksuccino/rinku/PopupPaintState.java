@@ -5,12 +5,14 @@ import java.awt.Rectangle;
 /**
  * Tracks whether retained popup pixels belong to the active visibility and geometry generation.
  *
- * <p>CEF does not attach a popup generation to paint callbacks, so the browser snapshots this generation while
+ * <p>
+ * CEF does not attach a popup generation to paint callbacks, so the browser snapshots this generation while
  * serializing callbacks. Any real visibility or geometry transition invalidates the retained pixels. Exact duplicate
  * callbacks deliberately keep them valid so a full view upload can continue restoring an unchanged visible popup.
  * Access is serialized by {@code RinkuBrowser}'s paint callback lock.
  */
 final class PopupPaintState {
+
     private Rectangle geometry;
     private boolean visible;
     private boolean retainedPixelsValid;
@@ -51,7 +53,10 @@ final class PopupPaintState {
     }
 
     boolean acceptsPaint(long generation, Rectangle geometry, boolean visible, int width, int height) {
-        return isCurrentState(generation, geometry, visible) && visible && this.geometry != null && width == this.geometry.width && height == this.geometry.height;
+        return isCurrentState(generation, geometry, visible) && visible
+            && this.geometry != null
+            && width == this.geometry.width
+            && height == this.geometry.height;
     }
 
     boolean requiresFullPaint(long generation, Rectangle geometry, boolean visible) {

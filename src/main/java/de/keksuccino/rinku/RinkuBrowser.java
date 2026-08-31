@@ -1,11 +1,19 @@
 package de.keksuccino.rinku;
 
-import de.keksuccino.rinku.listeners.RinkuCursorChangeListener;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import static de.keksuccino.rinku.GlfwConstantsBridge.*;
+import static org.lwjgl.opengl.GL12.*;
+
+import java.awt.*;
+import java.nio.ByteBuffer;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.cef.browser.CefBrowser;
 import org.cef.browser.CefBrowserOsr;
 import org.cef.callback.CefDragData;
@@ -14,16 +22,8 @@ import org.cef.event.CefMouseEvent;
 import org.cef.event.CefMouseWheelEvent;
 import org.cef.misc.CefCursorType;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import java.awt.*;
-import java.nio.ByteBuffer;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-import static de.keksuccino.rinku.GlfwConstantsBridge.*;
-import static org.lwjgl.opengl.GL12.*;
+
+import de.keksuccino.rinku.listeners.RinkuCursorChangeListener;
 
 /**
  * An instance of an "Off-screen rendered" Chromium web browser.
@@ -41,7 +41,10 @@ public class RinkuBrowser extends CefBrowserOsr {
      * The renderer for the browser.
      */
     private final RinkuRenderer renderer;
-    private final AsyncResourceLeaseManager<PaintSurface, AsyncPaintFrame> asyncPaintBufferLeases = new AsyncResourceLeaseManager<>(frame -> MemoryUtilBridge.memFree(frame.buffer()), AsyncPaintFrame::requireFullUpload, MAX_PENDING_PAINT_STREAMS);
+    private final AsyncResourceLeaseManager<PaintSurface, AsyncPaintFrame> asyncPaintBufferLeases = new AsyncResourceLeaseManager<>(
+        frame -> MemoryUtilBridge.memFree(frame.buffer()),
+        AsyncPaintFrame::requireFullUpload,
+        MAX_PENDING_PAINT_STREAMS);
     private final ReentrantLock paintCallbackLock = new ReentrantLock();
     private final BrowserCloseController closeController = new BrowserCloseController();
     private final AtomicBoolean deferredNativeClose = new AtomicBoolean();
@@ -50,22 +53,27 @@ public class RinkuBrowser extends CefBrowserOsr {
     private boolean rendererCleanupStarted;
     private int renderOperationDepth;
     private final RinkuDragSessionController.Callbacks<CefDragData> dragCallbacks = new RinkuDragSessionController.Callbacks<>() {
+
         @Override
         public void targetEnter(CefDragData dragData, int x, int y, int modifiers, int allowedOperations) {
             RinkuBrowser.this.dragTargetDragEnter(dragData, new Point(x, y), modifiers, allowedOperations);
         }
+
         @Override
         public void targetDrop(int x, int y, int modifiers) {
             RinkuBrowser.this.dragTargetDrop(new Point(x, y), modifiers);
         }
+
         @Override
         public void targetLeave() {
             RinkuBrowser.this.dragTargetDragLeave();
         }
+
         @Override
         public void sourceEndedAt(int x, int y, int operation) {
             RinkuBrowser.this.dragSourceEndedAt(new Point(x, y), operation);
         }
+
         @Override
         public void sourceSystemDragEnded() {
             RinkuBrowser.this.dragSourceSystemDragEnded();
@@ -114,7 +122,8 @@ public class RinkuBrowser extends CefBrowserOsr {
         renderer = new RinkuRenderer(transparent);
         cursorChangeListener = (cefCursorID) -> setCursor(resolveCursorType(cefCursorID));
         if (!RinkuRenderCoordinator.register(this)) {
-            IllegalStateException registrationFailure = new IllegalStateException("Cannot create a Rinku browser after render shutdown has started");
+            IllegalStateException registrationFailure = new IllegalStateException(
+                "Cannot create a Rinku browser after render shutdown has started");
             try {
                 closeBrowser(false);
             } catch (Throwable lifecycleFailure) {
@@ -242,7 +251,8 @@ public class RinkuBrowser extends CefBrowserOsr {
      * full-frame copy for that view or popup stream.
      */
     @Override
-    public void onPaint(CefBrowser browser, boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height) {
+    public void onPaint(CefBrowser browser, boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width,
+        int height) {
         if (dirtyRects == null || dirtyRects.length == 0 || buffer == null) return;
         if (onPaint(popup, dirtyRects, buffer, width, height)) {
             // The base class gives listeners isolated callback-scoped views.
@@ -270,7 +280,16 @@ public class RinkuBrowser extends CefBrowserOsr {
                 boolean forceFullUpload = asyncPaintBufferLeases.consumeResync(surface);
                 beginRenderOperation();
                 try {
-                    onPaintRenderThread(popup, dirtyRectsCopy, buffer, width, height, popupRectSnapshot, showPopupSnapshot, popupStateGeneration, forceFullUpload);
+                    onPaintRenderThread(
+                        popup,
+                        dirtyRectsCopy,
+                        buffer,
+                        width,
+                        height,
+                        popupRectSnapshot,
+                        showPopupSnapshot,
+                        popupStateGeneration,
+                        forceFullUpload);
                 } catch (Throwable failure) {
                     if (popup) {
                         invalidateRetainedPopupPixels();
@@ -288,7 +307,11 @@ public class RinkuBrowser extends CefBrowserOsr {
                 return false;
             }
             PaintSurface surface = PaintSurface.fromPopup(popup);
-            return asyncPaintBufferLeases.offer(surface, () -> createAsyncPaintFrame(surface, dirtyRects, buffer, width, height), this::renderAsyncPaintFrame, this::logAsyncPaintFailure);
+            return asyncPaintBufferLeases.offer(
+                surface,
+                () -> createAsyncPaintFrame(surface, dirtyRects, buffer, width, height),
+                this::renderAsyncPaintFrame,
+                this::logAsyncPaintFailure);
         } finally {
             paintCallbackLock.unlock();
         }
@@ -298,11 +321,20 @@ public class RinkuBrowser extends CefBrowserOsr {
         LOGGER.warn("Asynchronous browser paint failed.", failure);
     }
 
-    private AsyncPaintFrame createAsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height) {
+    private AsyncPaintFrame createAsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer,
+        int width, int height) {
         ByteBuffer bufferCopy = cloneBufferForAsyncPaint(buffer);
         try {
             Rectangle popupRectSnapshot = popupPaintState.geometry();
-            return new AsyncPaintFrame(surface, copyDirtyRects(dirtyRects), bufferCopy, width, height, popupRectSnapshot, popupPaintState.visible(), popupPaintState.generation());
+            return new AsyncPaintFrame(
+                surface,
+                copyDirtyRects(dirtyRects),
+                bufferCopy,
+                width,
+                height,
+                popupRectSnapshot,
+                popupPaintState.visible(),
+                popupPaintState.generation());
         } catch (Throwable failure) {
             MemoryUtilBridge.memFree(bufferCopy);
             throw failure;
@@ -328,7 +360,16 @@ public class RinkuBrowser extends CefBrowserOsr {
                 forceFullUpload = true;
             }
             try {
-                onPaintRenderThread(frame.surface() == PaintSurface.POPUP, frame.dirtyRects(), frame.buffer(), frame.width(), frame.height(), popupRect, showPopupSnapshot, popupStateGeneration, forceFullUpload);
+                onPaintRenderThread(
+                    frame.surface() == PaintSurface.POPUP,
+                    frame.dirtyRects(),
+                    frame.buffer(),
+                    frame.width(),
+                    frame.height(),
+                    popupRect,
+                    showPopupSnapshot,
+                    popupStateGeneration,
+                    forceFullUpload);
             } catch (Throwable failure) {
                 if (frame.surface() == PaintSurface.POPUP) {
                     invalidateRetainedPopupPixels();
@@ -363,7 +404,8 @@ public class RinkuBrowser extends CefBrowserOsr {
         closeBrowser(true);
     }
 
-    private void onPaintRenderThread(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height, Rectangle popupRect, boolean showPopupSnapshot, long popupStateGeneration, boolean forceFullUpload) {
+    private void onPaintRenderThread(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height,
+        Rectangle popupRect, boolean showPopupSnapshot, long popupStateGeneration, boolean forceFullUpload) {
         if (!popup) {
             if (forceFullUpload || lastWidth != width || lastHeight != height || !renderer.supportsDirtyRectUpload()) {
                 lastWidth = width;
@@ -388,7 +430,8 @@ public class RinkuBrowser extends CefBrowserOsr {
 
             restorePopupAfterViewPaint(width, height, popupRect, showPopupSnapshot, popupStateGeneration);
         } else {
-            if (!popupPaintState.acceptsPaint(popupStateGeneration, popupRect, showPopupSnapshot, width, height) || !renderer.supportsDirtyRectUpload()) {
+            if (!popupPaintState.acceptsPaint(popupStateGeneration, popupRect, showPopupSnapshot, width, height)
+                || !renderer.supportsDirtyRectUpload()) {
                 asyncPaintBufferLeases.requireResync(PaintSurface.POPUP);
                 return;
             }
@@ -407,11 +450,20 @@ public class RinkuBrowser extends CefBrowserOsr {
                 forceFullUpload = true;
             }
 
-            forceFullUpload = forceFullUpload || popupPaintState.requiresFullPaint(popupStateGeneration, popupRect, showPopupSnapshot);
+            forceFullUpload = forceFullUpload
+                || popupPaintState.requiresFullPaint(popupStateGeneration, popupRect, showPopupSnapshot);
             boolean copiedCompleteFullFrame = false;
-            Rectangle[] paintRects = forceFullUpload ? new Rectangle[]{new Rectangle(0, 0, width, height)} : dirtyRects;
+            Rectangle[] paintRects = forceFullUpload ? new Rectangle[] { new Rectangle(0, 0, width, height) }
+                : dirtyRects;
             for (Rectangle dirtyRect : paintRects) {
-                PopupPaintGeometry.PaintPlan paintPlan = PopupPaintGeometry.plan(dirtyRect, width, height, popupRect.x, popupRect.y, renderer.getTextureWidth(), renderer.getTextureHeight());
+                PopupPaintGeometry.PaintPlan paintPlan = PopupPaintGeometry.plan(
+                    dirtyRect,
+                    width,
+                    height,
+                    popupRect.x,
+                    popupRect.y,
+                    renderer.getTextureWidth(),
+                    renderer.getTextureHeight());
                 if (paintPlan == null) {
                     continue;
                 }
@@ -430,11 +482,17 @@ public class RinkuBrowser extends CefBrowserOsr {
                 GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, width);
                 GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, uploadSource.x());
                 GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, uploadSource.y());
-                renderer.onPaint(buffer, uploadDestination.x(), uploadDestination.y(), uploadDestination.width(), uploadDestination.height());
+                renderer.onPaint(
+                    buffer,
+                    uploadDestination.x(),
+                    uploadDestination.y(),
+                    uploadDestination.width(),
+                    uploadDestination.height());
             }
 
             // Full retained callback pixels are valid even when the popup had no visible destination pixels to upload.
-            if (forceFullUpload && (!copiedCompleteFullFrame || !popupPaintState.markFullPainted(popupStateGeneration, popupRect, showPopupSnapshot, width, height))) {
+            if (forceFullUpload && (!copiedCompleteFullFrame || !popupPaintState
+                .markFullPainted(popupStateGeneration, popupRect, showPopupSnapshot, width, height))) {
                 invalidateRetainedPopupPixels();
                 asyncPaintBufferLeases.requireResync(PaintSurface.POPUP);
                 return;
@@ -443,11 +501,19 @@ public class RinkuBrowser extends CefBrowserOsr {
         }
     }
 
-    private void restorePopupAfterViewPaint(int viewWidth, int viewHeight, Rectangle popupRect, boolean showPopupSnapshot, long popupStateGeneration) {
+    private void restorePopupAfterViewPaint(int viewWidth, int viewHeight, Rectangle popupRect,
+        boolean showPopupSnapshot, long popupStateGeneration) {
         if (!popupDrawn || !popupPaintState.canComposite(popupStateGeneration, popupRect, showPopupSnapshot)) {
             return;
         }
-        PopupPaintGeometry.PaintPlan paintPlan = PopupPaintGeometry.plan(new Rectangle(0, 0, popupRect.width, popupRect.height), popupRect.width, popupRect.height, popupRect.x, popupRect.y, viewWidth, viewHeight);
+        PopupPaintGeometry.PaintPlan paintPlan = PopupPaintGeometry.plan(
+            new Rectangle(0, 0, popupRect.width, popupRect.height),
+            popupRect.width,
+            popupRect.height,
+            popupRect.x,
+            popupRect.y,
+            viewWidth,
+            viewHeight);
         if (paintPlan == null || paintPlan.upload() == null) {
             return;
         }
@@ -465,7 +531,12 @@ public class RinkuBrowser extends CefBrowserOsr {
         GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, popupRect.width);
         GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, uploadSource.x());
         GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, uploadSource.y());
-        renderer.onPaint(popupBuffer, uploadDestination.x(), uploadDestination.y(), uploadDestination.width(), uploadDestination.height());
+        renderer.onPaint(
+            popupBuffer,
+            uploadDestination.x(),
+            uploadDestination.y(),
+            uploadDestination.width(),
+            uploadDestination.height());
     }
 
     private void invalidateRetainedPopupPixels() {
@@ -482,7 +553,8 @@ public class RinkuBrowser extends CefBrowserOsr {
         return copy;
     }
 
-    private static void copyRectRows(ByteBuffer src, int srcWidth, ByteBuffer dst, int dstWidth, PopupPaintGeometry.Region rect) {
+    private static void copyRectRows(ByteBuffer src, int srcWidth, ByteBuffer dst, int dstWidth,
+        PopupPaintGeometry.Region rect) {
         long srcAddr = MemoryUtilBridge.memAddress(src);
         long dstAddr = MemoryUtilBridge.memAddress(dst);
         int bytesPerRow = rect.width() << 2;
@@ -651,11 +723,16 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     public void sendMouseMove(int mouseX, int mouseY) {
-        CefMouseEvent e = new CefMouseEvent(CefMouseEvent.MOUSE_MOVED, mouseX, mouseY, 0, 0, dragContext.getVirtualModifiers(btnMask));
+        CefMouseEvent e = new CefMouseEvent(
+            CefMouseEvent.MOUSE_MOVED,
+            mouseX,
+            mouseY,
+            0,
+            0,
+            dragContext.getVirtualModifiers(btnMask));
         sendMouseEvent(e);
 
-        if (dragContext.isDragging())
-            this.dragTargetDragOver(new Point(mouseX, mouseY), 0, dragContext.getMask());
+        if (dragContext.isDragging()) this.dragTargetDragOver(new Point(mouseX, mouseY), 0, dragContext.getMask());
     }
 
     // TODO: it may be necessary to add modifiers here
@@ -705,7 +782,8 @@ public class RinkuBrowser extends CefBrowserOsr {
         }
 
         // macOS generally has a slow scroll speed that feels more natural with their magic mice / trackpads
-        if (!OSPlatform.getPlatform().isMacOS()) {
+        if (!OSPlatform.getPlatform()
+            .isMacOS()) {
             // This removes the feeling of "smooth scroll"
             if (amount < 0) {
                 amount = Math.floor(amount);
@@ -717,7 +795,12 @@ public class RinkuBrowser extends CefBrowserOsr {
             amount = amount * 3;
         }
 
-        CefMouseWheelEvent e = new CefMouseWheelEvent(CefMouseWheelEvent.WHEEL_UNIT_SCROLL, mouseX, mouseY, amount, modifiers);
+        CefMouseWheelEvent e = new CefMouseWheelEvent(
+            CefMouseWheelEvent.WHEEL_UNIT_SCROLL,
+            mouseX,
+            mouseY,
+            amount,
+            modifiers);
         sendMouseWheelEvent(e);
     }
 
@@ -750,7 +833,8 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     // Expose drag & drop functions
-    public void startDragging(CefDragData dragData, int mask, int x, int y) { // Overload since the JCEF method requires a browser, which then goes unused
+    public void startDragging(CefDragData dragData, int mask, int x, int y) { // Overload since the JCEF method requires
+                                                                              // a browser, which then goes unused
         startDragging(this, dragData, mask, x, y);
     }
 
@@ -1067,10 +1151,12 @@ public class RinkuBrowser extends CefBrowserOsr {
 
     @FunctionalInterface
     private interface DragCompletion {
+
         boolean complete();
     }
 
     private enum PaintSurface {
+
         VIEW,
         POPUP;
 
@@ -1080,6 +1166,7 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     private static final class AsyncPaintFrame {
+
         private final PaintSurface surface;
         private final Rectangle[] dirtyRects;
         private final ByteBuffer buffer;
@@ -1090,7 +1177,8 @@ public class RinkuBrowser extends CefBrowserOsr {
         private final long popupStateGeneration;
         private volatile boolean fullUpload;
 
-        private AsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height, Rectangle popupRect, boolean showPopup, long popupStateGeneration) {
+        private AsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height,
+            Rectangle popupRect, boolean showPopup, long popupStateGeneration) {
             this.surface = surface;
             this.dirtyRects = dirtyRects;
             this.buffer = buffer;

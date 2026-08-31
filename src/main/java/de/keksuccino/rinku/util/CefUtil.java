@@ -1,14 +1,5 @@
 package de.keksuccino.rinku.util;
 
-import de.keksuccino.rinku.OSPlatform;
-import de.keksuccino.rinku.Rinku;
-import de.keksuccino.rinku.RinkuSettings;
-import org.cef.CefApp;
-import org.cef.CefClient;
-import org.cef.CefSettings;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -22,6 +13,16 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.cef.CefApp;
+import org.cef.CefClient;
+import org.cef.CefSettings;
+
+import de.keksuccino.rinku.OSPlatform;
+import de.keksuccino.rinku.Rinku;
+import de.keksuccino.rinku.RinkuSettings;
 
 /**
  * This class mostly just interacts with org.cef.* for internal use in {@link Rinku}.
@@ -38,13 +39,15 @@ public final class CefUtil {
     private CefUtil() {}
 
     public static void addUnixExecutePermissions(Path file) throws IOException {
-        PosixFileAttributeView posixView = Files.getFileAttributeView(file, PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+        PosixFileAttributeView posixView = Files
+            .getFileAttributeView(file, PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
         if (posixView == null) {
             addPortableExecutePermissions(file);
             return;
         }
 
-        Set<PosixFilePermission> existing = posixView.readAttributes().permissions();
+        Set<PosixFilePermission> existing = posixView.readAttributes()
+            .permissions();
         Set<PosixFilePermission> updated = EnumSet.noneOf(PosixFilePermission.class);
         updated.addAll(existing);
         updated.add(PosixFilePermission.OWNER_EXECUTE);
@@ -60,12 +63,14 @@ public final class CefUtil {
     public static void addPortableExecutePermissions(Path file) throws IOException {
         boolean changed;
         try {
-            changed = file.toFile().setExecutable(true, false);
+            changed = file.toFile()
+                .setExecutable(true, false);
         } catch (SecurityException | UnsupportedOperationException failure) {
             throw new IOException("Could not set executable permissions on " + file, failure);
         }
         if (!Files.isExecutable(file)) {
-            throw new IOException("Could not set executable permissions on " + file + "; File.setExecutable returned " + changed);
+            throw new IOException(
+                "Could not set executable permissions on " + file + "; File.setExecutable returned " + changed);
         }
     }
 
@@ -78,7 +83,14 @@ public final class CefUtil {
         }
         Path contents = installation.resolve("jcef_app.app/Contents");
         Path frameworks = contents.resolve("Frameworks");
-        return Arrays.asList(contents.resolve("MacOS/JavaAppLauncher"), frameworks.resolve("Chromium Embedded Framework.framework/Chromium Embedded Framework"), frameworks.resolve("jcef Helper.app/Contents/MacOS/jcef Helper"), frameworks.resolve("jcef Helper (Alerts).app/Contents/MacOS/jcef Helper (Alerts)"), frameworks.resolve("jcef Helper (GPU).app/Contents/MacOS/jcef Helper (GPU)"), frameworks.resolve("jcef Helper (Plugin).app/Contents/MacOS/jcef Helper (Plugin)"), frameworks.resolve("jcef Helper (Renderer).app/Contents/MacOS/jcef Helper (Renderer)"));
+        return Arrays.asList(
+            contents.resolve("MacOS/JavaAppLauncher"),
+            frameworks.resolve("Chromium Embedded Framework.framework/Chromium Embedded Framework"),
+            frameworks.resolve("jcef Helper.app/Contents/MacOS/jcef Helper"),
+            frameworks.resolve("jcef Helper (Alerts).app/Contents/MacOS/jcef Helper (Alerts)"),
+            frameworks.resolve("jcef Helper (GPU).app/Contents/MacOS/jcef Helper (GPU)"),
+            frameworks.resolve("jcef Helper (Plugin).app/Contents/MacOS/jcef Helper (Plugin)"),
+            frameworks.resolve("jcef Helper (Renderer).app/Contents/MacOS/jcef Helper (Renderer)"));
     }
 
     private static void ensureUnixExecutables(Path installation, OSPlatform platform) {
@@ -94,8 +106,10 @@ public final class CefUtil {
     public static boolean init() {
         OSPlatform platform = OSPlatform.getPlatform();
         String configuredJcefPath = System.getProperty("jcef.path");
-        if (configuredJcefPath == null || configuredJcefPath.trim().isEmpty()) {
-            LOGGER.error("JCEF installation path is unavailable; the downloader must finish before CEF initialization.");
+        if (configuredJcefPath == null || configuredJcefPath.trim()
+            .isEmpty()) {
+            LOGGER
+                .error("JCEF installation path is unavailable; the downloader must finish before CEF initialization.");
             return false;
         }
         Path jcefInstallation = Paths.get(configuredJcefPath);
@@ -135,7 +149,10 @@ public final class CefUtil {
                 cefSettings.persist_session_cookies = true;
                 LOGGER.info("Using persistent Rinku browser data directory: {}", cachePath);
             } catch (IOException e) {
-                LOGGER.warn("Failed to create persistent Rinku cache directory {}. Falling back to non-persistent browser data.", cachePath, e);
+                LOGGER.warn(
+                    "Failed to create persistent Rinku cache directory {}. Falling back to non-persistent browser data.",
+                    cachePath,
+                    e);
             }
         }
         cefSettings.log_severity = settings.getNativeCefLogSeverity();
@@ -147,7 +164,8 @@ public final class CefUtil {
         } else {
             // Use an explicit desktop Chrome user agent to prevent sites from serving mobile layouts.
             // We keep the "Rinku/2" product token appended for compatibility with the previous workaround.
-            String osName = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+            String osName = System.getProperty("os.name", "")
+                .toLowerCase(java.util.Locale.ROOT);
             String osPart;
             if (osName.contains("win")) {
                 osPart = "Windows NT 10.0; Win64; x64";
@@ -158,7 +176,8 @@ public final class CefUtil {
             }
             // A stable, well-known desktop Chrome version string - exact minor version isn't critical for
             // convincing responsive sites to serve the desktop layout.
-            effectiveDesktopUserAgent = "Mozilla/5.0 (" + osPart + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Rinku/2";
+            effectiveDesktopUserAgent = "Mozilla/5.0 (" + osPart
+                + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Rinku/2";
             cefSettings.user_agent = effectiveDesktopUserAgent;
         }
 
@@ -202,13 +221,17 @@ public final class CefUtil {
 
         if (platform.isWindows()) {
             String localAppData = System.getenv("LOCALAPPDATA");
-            if (localAppData != null && !localAppData.trim().isEmpty()) {
-                return Paths.get(localAppData).resolve("Rinku");
+            if (localAppData != null && !localAppData.trim()
+                .isEmpty()) {
+                return Paths.get(localAppData)
+                    .resolve("Rinku");
             }
 
             String appData = System.getenv("APPDATA");
-            if (appData != null && !appData.trim().isEmpty()) {
-                return Paths.get(appData).resolve("Rinku");
+            if (appData != null && !appData.trim()
+                .isEmpty()) {
+                return Paths.get(appData)
+                    .resolve("Rinku");
             }
 
             return Paths.get(userHome, "AppData", "Local", "Rinku");
@@ -219,8 +242,10 @@ public final class CefUtil {
         }
 
         String xdgDataHome = System.getenv("XDG_DATA_HOME");
-        if (xdgDataHome != null && !xdgDataHome.trim().isEmpty()) {
-            return Paths.get(xdgDataHome).resolve("rinku");
+        if (xdgDataHome != null && !xdgDataHome.trim()
+            .isEmpty()) {
+            return Paths.get(xdgDataHome)
+                .resolve("rinku");
         }
 
         return Paths.get(userHome, ".local", "share", "rinku");

@@ -1,18 +1,20 @@
 package de.keksuccino.rinku;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.ResourceLocation;
+
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
 @SideOnly(Side.CLIENT)
 public class RinkuRenderer {
+
     private final boolean transparent;
     private int glTextureId = 0;
     private int textureWidth = 0;
@@ -25,13 +27,18 @@ public class RinkuRenderer {
 
     protected RinkuRenderer(boolean transparent) {
         this.transparent = transparent;
-        String uniqueId = UUID.randomUUID().toString().toLowerCase().replace("-", "");
+        String uniqueId = UUID.randomUUID()
+            .toString()
+            .toLowerCase()
+            .replace("-", "");
         this.textureIdentifier = new ResourceLocation("rinku", "browser_" + uniqueId);
     }
 
     public void initialize() {
         directTexture = new RinkuDirectTexture();
-        Minecraft.getMinecraft().getTextureManager().loadTexture(textureIdentifier, directTexture);
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .loadTexture(textureIdentifier, directTexture);
         textureRegistered = true;
         syncDirectTextureViewIfNeeded();
     }
@@ -75,9 +82,14 @@ public class RinkuRenderer {
         }
         fallbackRgbaUploadBuffer = null;
 
-        if (textureRegistered && textureIdentifier != null && Minecraft.getMinecraft() != null && Minecraft.getMinecraft().getTextureManager() != null) {
+        if (textureRegistered && textureIdentifier != null
+            && Minecraft.getMinecraft() != null
+            && Minecraft.getMinecraft()
+                .getTextureManager() != null) {
             try {
-                Minecraft.getMinecraft().getTextureManager().deleteTexture(textureIdentifier);
+                Minecraft.getMinecraft()
+                    .getTextureManager()
+                    .deleteTexture(textureIdentifier);
             } catch (Exception ignored) {}
             textureRegistered = false;
         }
@@ -104,8 +116,16 @@ public class RinkuRenderer {
         GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, width);
         GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, 0);
         GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, 0);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0,
-                GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
+        GL11.glTexImage2D(
+            GL11.GL_TEXTURE_2D,
+            0,
+            GL11.GL_RGBA,
+            width,
+            height,
+            0,
+            GL12.GL_BGRA,
+            GL12.GL_UNSIGNED_INT_8_8_8_8_REV,
+            buffer);
         resetGlPixelStoreState();
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
     }
@@ -114,8 +134,16 @@ public class RinkuRenderer {
         syncDirectTextureViewIfNeeded();
         if (glTextureId != 0) {
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, glTextureId);
-            GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, x, y, width, height, GL12.GL_BGRA,
-                    GL12.GL_UNSIGNED_INT_8_8_8_8_REV, buffer);
+            GL11.glTexSubImage2D(
+                GL11.GL_TEXTURE_2D,
+                0,
+                x,
+                y,
+                width,
+                height,
+                GL12.GL_BGRA,
+                GL12.GL_UNSIGNED_INT_8_8_8_8_REV,
+                buffer);
             resetGlPixelStoreState();
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
             return;
@@ -127,16 +155,16 @@ public class RinkuRenderer {
         if (!textureRegistered || directTexture == null || glTextureId == 0) {
             return;
         }
-        boolean needsRebind = !directTexture.isTextureViewReady()
-                || directTexture.getWidth() != textureWidth
-                || directTexture.getHeight() != textureHeight
-                || directTexture.getTextureGlId() != glTextureId;
+        boolean needsRebind = !directTexture.isTextureViewReady() || directTexture.getWidth() != textureWidth
+            || directTexture.getHeight() != textureHeight
+            || directTexture.getTextureGlId() != glTextureId;
         if (needsRebind) {
             directTexture.bindTexture(glTextureId, textureWidth, textureHeight);
         }
     }
 
-    private void uploadWithFallback(ByteBuffer buffer, int destinationX, int destinationY, int copyWidth, int copyHeight) {
+    private void uploadWithFallback(ByteBuffer buffer, int destinationX, int destinationY, int copyWidth,
+        int copyHeight) {
         if (glTextureId == 0 || buffer == null) return;
         int requiredBytes = copyWidth * copyHeight * 4;
         if (requiredBytes <= 0 || buffer.capacity() < requiredBytes) return;
@@ -144,8 +172,16 @@ public class RinkuRenderer {
         if (uploadBuffer == null) return;
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, glTextureId);
         GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, copyWidth);
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, destinationX, destinationY, copyWidth, copyHeight,
-                GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, uploadBuffer.slice());
+        GL11.glTexSubImage2D(
+            GL11.GL_TEXTURE_2D,
+            0,
+            destinationX,
+            destinationY,
+            copyWidth,
+            copyHeight,
+            GL11.GL_RGBA,
+            GL11.GL_UNSIGNED_BYTE,
+            uploadBuffer.slice());
         resetGlPixelStoreState();
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
     }

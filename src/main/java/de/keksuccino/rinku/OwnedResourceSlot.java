@@ -7,7 +7,8 @@ import java.util.function.Function;
 /**
  * Owns at most one resource and coordinates replacement, use, and terminal shutdown.
  *
- * <p>Publication is always cleared before a retired resource is disposed. User code and the
+ * <p>
+ * Publication is always cleared before a retired resource is disposed. User code and the
  * disposer run without {@link #lock} held because either may enter native code and re-enter Java.
  */
 final class OwnedResourceSlot<T> implements AutoCloseable {
@@ -239,6 +240,7 @@ final class OwnedResourceSlot<T> implements AutoCloseable {
     }
 
     private static final class Entry<T> {
+
         private T resource;
         private final Object identity;
         private int activeUses;

@@ -15,6 +15,7 @@ import java.util.function.Consumer;
  * cannot prevent the remaining browsers from painting or cleaning up.
  */
 final class RenderThreadMailboxCoordinator<T> {
+
     private final Object stateLock = new Object();
     private final Set<T> registrations = new LinkedHashSet<>();
     private boolean shutdown;
@@ -78,7 +79,8 @@ final class RenderThreadMailboxCoordinator<T> {
         }
     }
 
-    private static <T> void invokeIsolated(T registration, Consumer<? super T> action, BiConsumer<? super T, ? super Throwable> failureHandler) {
+    private static <T> void invokeIsolated(T registration, Consumer<? super T> action,
+        BiConsumer<? super T, ? super Throwable> failureHandler) {
         try {
             action.accept(registration);
         } catch (Throwable failure) {

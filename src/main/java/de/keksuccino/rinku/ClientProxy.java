@@ -1,24 +1,28 @@
 package de.keksuccino.rinku;
 
-import cpw.mods.fml.client.registry.ClientRegistry;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import de.keksuccino.rinku.example.ExampleScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.common.MinecraftForge;
+
 import org.lwjgl.input.Keyboard;
+
+import cpw.mods.fml.client.registry.ClientRegistry;
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
+import de.keksuccino.rinku.example.ExampleScreen;
 
 // 这个类就对应高版本的 RinkuExampleMod，只是名称变成 ClientProxy（因为 1.7.10 习惯用代理）
 public class ClientProxy extends CommonProxy {
 
     // 按键：对应高版本中的 KEY_MAPPING
-    public static final KeyBinding KEY_OPEN_BROWSER =
-        new KeyBinding("key.rinku.openBrowser", Keyboard.KEY_F12, "key.categories.rinku");
+    public static final KeyBinding KEY_OPEN_BROWSER = new KeyBinding(
+        "key.rinku.openBrowser",
+        Keyboard.KEY_F12,
+        "key.categories.rinku");
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
@@ -32,7 +36,9 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(this);
         // 有些 Tick 事件需要注册到 FML 总线，为了保险两个都挂上（高版本 ClientTickEvent 走的是 NeoForge 总线，这里用 Forge 即可）
         // 但 1.7.10 的 TickEvent.ClientTickEvent 必须用 FMLCommonHandler 总线，所以这行不能省：
-        FMLCommonHandler.instance().bus().register(this);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(this);
     }
 
     // 高版本中 onTick(ClientTickEvent.Post) 的等价实现

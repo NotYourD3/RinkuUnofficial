@@ -1,8 +1,8 @@
 package de.keksuccino.rinku;
 
-import org.cef.misc.CefCursorType;
-
 import java.util.Objects;
+
+import org.cef.misc.CefCursorType;
 
 /** Applies browser cursor changes without taking cursor ownership away from Minecraft gameplay. */
 final class BrowserCursorController {

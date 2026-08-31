@@ -1,16 +1,18 @@
 package de.keksuccino.rinku;
 
-import cpw.mods.fml.common.Mod;
-import de.keksuccino.rinku.listeners.RinkuInitListener;
-import de.keksuccino.rinku.platform.Services;
-import de.keksuccino.rinku.util.CefUtil;
+import java.io.IOException;
+import java.util.*;
+
+import javax.annotation.Nullable;
+
 import net.minecraft.client.Minecraft;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.*;
+import de.keksuccino.rinku.listeners.RinkuInitListener;
+import de.keksuccino.rinku.platform.Services;
+import de.keksuccino.rinku.util.CefUtil;
 
 public final class Rinku {
 
@@ -37,6 +39,7 @@ public final class Rinku {
     private static boolean preloadPoolClosed = true;
 
     private static final class CefCursorTypeHolder {
+
         static final Object POINTER;
         static final Object NONE;
         static {
@@ -44,44 +47,56 @@ public final class Rinku {
             Object n = null;
             try {
                 Class<?> cefCursorTypeClass = Class.forName("org.cef.misc.CefCursorType");
-                p = cefCursorTypeClass.getField("POINTER").get(null);
-                n = cefCursorTypeClass.getField("NONE").get(null);
+                p = cefCursorTypeClass.getField("POINTER")
+                    .get(null);
+                n = cefCursorTypeClass.getField("NONE")
+                    .get(null);
             } catch (Throwable t) {
                 LOGGER.warn("[RINKU] Failed to resolve CefCursorType constants; JCEF is not available yet.", t);
             }
             POINTER = p;
             NONE = n;
         }
+
         private static Object pointer() {
             return POINTER != null ? POINTER : resolvePointerFallback();
         }
+
         private static Object none() {
             return NONE != null ? NONE : resolveNoneFallback();
         }
+
         private static Object resolvePointerFallback() {
             try {
-                return Class.forName("org.cef.misc.CefCursorType").getField("POINTER").get(null);
+                return Class.forName("org.cef.misc.CefCursorType")
+                    .getField("POINTER")
+                    .get(null);
             } catch (Throwable t) {
                 throw new RuntimeException("CefCursorType.POINTER not available; JCEF was never loaded?", t);
             }
         }
+
         private static Object resolveNoneFallback() {
             try {
-                return Class.forName("org.cef.misc.CefCursorType").getField("NONE").get(null);
+                return Class.forName("org.cef.misc.CefCursorType")
+                    .getField("NONE")
+                    .get(null);
             } catch (Throwable t) {
                 throw new RuntimeException("CefCursorType.NONE not available; JCEF was never loaded?", t);
             }
         }
+
         private static int glfwIdOf(Object cursorType) {
             try {
-                return (Integer) cursorType.getClass().getField("glfwId").get(cursorType);
+                return (Integer) cursorType.getClass()
+                    .getField("glfwId")
+                    .get(cursorType);
             } catch (Throwable t) {
                 LOGGER.warn("[RINKU] Failed to read CefCursorType.glfwId", t);
                 return -1;
             }
         }
     }
-
 
     public static boolean initialize() {
 
@@ -94,7 +109,14 @@ public final class Rinku {
 
             try {
 
-                LOGGER.info("[RINKU] Loading v" + Rinku.VERSION + " on " + Services.PLATFORM.getPlatformDisplayName() + " (" + OSPlatform.getPlatform().getNormalizedName() + ")..");
+                LOGGER.info(
+                    "[RINKU] Loading v" + Rinku.VERSION
+                        + " on "
+                        + Services.PLATFORM.getPlatformDisplayName()
+                        + " ("
+                        + OSPlatform.getPlatform()
+                            .getNormalizedName()
+                        + ")..");
 
                 if (CefUtil.init()) {
 
@@ -120,18 +142,25 @@ public final class Rinku {
 
                     LOGGER.info("[RINKU] Successfully initialized!");
 
-                    app.getHandle().registerSchemeHandlerFactory("mod", "", (browser, frame, url, request) -> (org.cef.handler.CefResourceHandler) ModScheme.createHandler(request.getURL()));
+                    app.getHandle()
+                        .registerSchemeHandlerFactory(
+                            "mod",
+                            "",
+                            (browser, frame, url, request) -> (org.cef.handler.CefResourceHandler) ModScheme
+                                .createHandler(request.getURL()));
                     prefillPreloadedBrowserPoolsAsync();
 
                     // These callbacks are important because JCEF helper processes can otherwise
                     // survive the game. Rinku's lifecycle gate makes every shutdown path idempotent.
                     OSPlatform platform = OSPlatform.getPlatform();
                     if (platform.isLinux() || platform.isWindows()) {
-                        Runtime.getRuntime().addShutdownHook(new Thread(Rinku::shutdown, "Rinku-Shutdown"));
+                        Runtime.getRuntime()
+                            .addShutdownHook(new Thread(Rinku::shutdown, "Rinku-Shutdown"));
                     } else if (platform.isMacOS()) {
                         CefUtil.getCefApp().macOSTerminationRequestRunnable = () -> {
                             shutdown();
-                            Minecraft.getMinecraft().shutdown();
+                            Minecraft.getMinecraft()
+                                .shutdown();
                         };
                     }
 
@@ -142,7 +171,9 @@ public final class Rinku {
                 awaitingInit.forEach(t -> t.onInit(false));
                 awaitingInit.clear();
 
-                LOGGER.error("[RINKU] Failed to initialize!", new Throwable("Something happened, but what exactly is _very unclear_."));
+                LOGGER.error(
+                    "[RINKU] Failed to initialize!",
+                    new Throwable("Something happened, but what exactly is _very unclear_."));
 
                 shutdownLocked();
 
@@ -163,6 +194,7 @@ public final class Rinku {
 
     /**
      * Check if Rinku is initialized.
+     * 
      * @return true if Rinku is initialized correctly, false if not
      */
     public static boolean isInitialized() {
@@ -183,7 +215,9 @@ public final class Rinku {
 
     /**
      * Get access to various settings for Rinku.
-     * @return Returns the existing {@link RinkuSettings} or creates a new {@link RinkuSettings} and loads from disk (blocking)
+     * 
+     * @return Returns the existing {@link RinkuSettings} or creates a new {@link RinkuSettings} and loads from disk
+     *         (blocking)
      */
     public static RinkuSettings getSettings() {
         if (settings == null) {
@@ -199,6 +233,7 @@ public final class Rinku {
 
     /**
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
+     * 
      * @return the {@link RinkuApp} instance
      */
     public static RinkuApp getApp() {
@@ -208,6 +243,7 @@ public final class Rinku {
 
     /**
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
+     * 
      * @return the {@link RinkuClient} instance
      */
     public static RinkuClient getClient() {
@@ -218,6 +254,7 @@ public final class Rinku {
     /**
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
      * Creates a new Chromium web browser with some starting URL. Can set it to be transparent rendering.
+     * 
      * @return the {@link RinkuBrowser} web browser instance
      */
     public static RinkuBrowser createBrowser(String url, boolean transparent) {
@@ -231,6 +268,7 @@ public final class Rinku {
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
      * Creates a new Chromium web browser with some starting URL, width, and height.
      * Can set it to be transparent rendering.
+     * 
      * @return the {@link RinkuBrowser} web browser instance
      */
     public static RinkuBrowser createBrowser(String url, boolean transparent, int width, int height) {
@@ -369,7 +407,10 @@ public final class Rinku {
             preloadBrowser(transparent);
         } catch (Throwable throwable) {
             decrementPreloadInFlight(transparent);
-            LOGGER.warn("[RINKU] Failed to submit {} browser preload task!", transparent ? "transparent" : "opaque", throwable);
+            LOGGER.warn(
+                "[RINKU] Failed to submit {} browser preload task!",
+                transparent ? "transparent" : "opaque",
+                throwable);
         }
     }
 
@@ -412,9 +453,8 @@ public final class Rinku {
         if (!currentSettings.isBrowserPreloadEnabled()) {
             return 0;
         }
-        return transparent
-                ? currentSettings.getBrowserPreloadTransparentPoolSize()
-                : currentSettings.getBrowserPreloadOpaquePoolSize();
+        return transparent ? currentSettings.getBrowserPreloadTransparentPoolSize()
+            : currentSettings.getBrowserPreloadOpaquePoolSize();
     }
 
     private static Deque<RinkuBrowser> getPreloadedBrowserPool(boolean transparent) {
@@ -457,11 +497,13 @@ public final class Rinku {
         try {
             if (browser == null) return;
             browser.close();
-        } catch (Throwable ignored) {} // We close it _quietly_, so throwing errors would be kinda dumb here, wouldn't it?
+        } catch (Throwable ignored) {} // We close it _quietly_, so throwing errors would be kinda dumb here, wouldn't
+                                       // it?
     }
 
     /**
      * Get the build-pinned git commit hash of the JCEF Java API and native runtime release.
+     * 
      * @return The git commit hash of java-cef
      */
     public static String getJavaCefCommit() throws IOException {

@@ -1,10 +1,11 @@
 package de.keksuccino.rinku;
 
-import javax.annotation.Nullable;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 /** Selects usable pooled resources without discarding entries whose asynchronous setup is still pending. */
 final class ReadyResourceQueue {

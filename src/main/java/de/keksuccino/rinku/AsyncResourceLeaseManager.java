@@ -1,7 +1,5 @@
 package de.keksuccino.rinku;
 
-import com.github.bsideup.jabel.Desugar;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,18 +12,23 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.github.bsideup.jabel.Desugar;
+
 /**
  * Owns the latest asynchronous resource for each fixed stream until the render thread claims it.
  *
- * <p>Producers are serialized only while reserving and publishing an allocation. The expensive copy is performed
+ * <p>
+ * Producers are serialized only while reserving and publishing an allocation. The expensive copy is performed
  * outside the state lock, close never waits for it, and at most one candidate allocation can exist at a time. A newer
  * resource replaces an older pending resource from the same stream and is marked for full resynchronization before
  * publication. Claimed resources have a single render-thread owner and are always released in {@code finally}.
  *
- * <p>This mailbox deliberately has no executor or future dependency. Minecraft can clear its event-loop queue without
+ * <p>
+ * This mailbox deliberately has no executor or future dependency. Minecraft can clear its event-loop queue without
  * completing queued futures, so a render-thread frame hook must call {@link #drain(int)} directly.
  */
 final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
+
     private final Consumer<? super T> releaser;
     private final Consumer<? super T> resyncMarker;
     private final int maxPendingStreams;
@@ -53,7 +56,8 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
         return accepting;
     }
 
-    boolean offer(K stream, Supplier<? extends T> resourceFactory, Consumer<? super T> task, Consumer<? super Throwable> failureHandler) {
+    boolean offer(K stream, Supplier<? extends T> resourceFactory, Consumer<? super T> task,
+        Consumer<? super Throwable> failureHandler) {
         Objects.requireNonNull(stream, "stream");
         Objects.requireNonNull(resourceFactory, "resourceFactory");
         Objects.requireNonNull(task, "task");
@@ -268,7 +272,8 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
     private void runLease(Lease<K, T> lease) {
         Throwable failure = null;
         try {
-            lease.task().accept(lease.resource());
+            lease.task()
+                .accept(lease.resource());
         } catch (Throwable taskFailure) {
             failure = taskFailure;
             stateLock.lock();
@@ -345,5 +350,6 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
     }
 
     @Desugar
-    private record Lease<K, T>(K stream, long sequence, T resource, Consumer<? super T> task, Consumer<? super Throwable> failureHandler) {}
+    private record Lease<K, T> (K stream, long sequence, T resource, Consumer<? super T> task,
+        Consumer<? super Throwable> failureHandler) {}
 }

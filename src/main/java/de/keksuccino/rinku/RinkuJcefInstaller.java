@@ -1,7 +1,5 @@
 package de.keksuccino.rinku;
 
-import de.keksuccino.rinku.util.CefUtil;
-
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
@@ -24,12 +22,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import de.keksuccino.rinku.util.CefUtil;
+
 /** Owns one locked, exact-commit JCEF installation attempt. */
 public final class RinkuJcefInstaller implements AutoCloseable {
+
     private static final String CACHE_VERSION_DIRECTORY_NAME = "jcef-v1";
     private static final String LOCK_FILE_NAME = ".install.lock";
     private static final String STAGING_DIRECTORY_NAME = ".staging";
-    private static final Pattern STAGING_NAME_PATTERN = Pattern.compile("[0-9a-f]{40}-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
+    private static final Pattern STAGING_NAME_PATTERN = Pattern
+        .compile("[0-9a-f]{40}-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
     private static final int MAX_STAGING_ENTRIES_PER_CLEANUP = 256;
     private static final int MAX_STAGING_DIRECTORIES_PER_CLEANUP = 64;
     private static final int MAX_CLEANUP_ENTRIES = RinkuSecureArchiveExtractor.MAX_EXTRACTED_FILESYSTEM_ENTRIES + 192;
@@ -54,12 +56,16 @@ public final class RinkuJcefInstaller implements AutoCloseable {
     private Path extractionDirectory;
     private boolean closed;
 
-    public RinkuJcefInstaller(Path librariesDirectory, OSPlatform platform, String javaCefCommit, Consumer<IOException> cleanupWarning) throws IOException {
+    public RinkuJcefInstaller(Path librariesDirectory, OSPlatform platform, String javaCefCommit,
+        Consumer<IOException> cleanupWarning) throws IOException {
         this.platform = Objects.requireNonNull(platform, "Rinku platform must not be null");
         this.javaCefCommit = RinkuJcefInstallationValidator.normalizeCommit(javaCefCommit);
         this.cleanupWarning = Objects.requireNonNull(cleanupWarning, "JCEF cleanup warning handler must not be null");
 
-        Path configuredLibrariesDirectory = Objects.requireNonNull(librariesDirectory, "Rinku libraries directory must not be null").toAbsolutePath().normalize();
+        Path configuredLibrariesDirectory = Objects
+            .requireNonNull(librariesDirectory, "Rinku libraries directory must not be null")
+            .toAbsolutePath()
+            .normalize();
         Files.createDirectories(configuredLibrariesDirectory);
         requireSafeDirectory(configuredLibrariesDirectory, "Rinku libraries directory");
         Path realLibrariesDirectory = configuredLibrariesDirectory.toRealPath();
@@ -74,7 +80,8 @@ public final class RinkuJcefInstaller implements AutoCloseable {
         FileLock acquiredFileLock = null;
         try {
             validateLockFile();
-            openedChannel = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+            openedChannel = FileChannel
+                .open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
             try {
                 acquiredFileLock = openedChannel.lock();
             } catch (OverlappingFileLockException failure) {
@@ -126,7 +133,9 @@ public final class RinkuJcefInstaller implements AutoCloseable {
 
     public Path findReusableInstallation() {
         requireOpenAndOwner();
-        return RinkuJcefInstallationValidator.isReusable(installationDirectory, platform, javaCefCommit) ? installationDirectory : null;
+        return RinkuJcefInstallationValidator.isReusable(installationDirectory, platform, javaCefCommit)
+            ? installationDirectory
+            : null;
     }
 
     public void prepareFresh() throws IOException {
@@ -148,7 +157,8 @@ public final class RinkuJcefInstaller implements AutoCloseable {
 
     public void discardCandidateChecksum() throws IOException {
         requirePrepared();
-        if (Files.exists(candidateChecksum, LinkOption.NOFOLLOW_LINKS) && !Files.isRegularFile(candidateChecksum, LinkOption.NOFOLLOW_LINKS)) {
+        if (Files.exists(candidateChecksum, LinkOption.NOFOLLOW_LINKS)
+            && !Files.isRegularFile(candidateChecksum, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Unsafe candidate JCEF checksum path: " + candidateChecksum);
         }
         Files.deleteIfExists(candidateChecksum);
@@ -178,7 +188,9 @@ public final class RinkuJcefInstaller implements AutoCloseable {
         try {
             Files.move(stagedInstallation, installationDirectory, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException failure) {
-            throw new IOException("JCEF cache publication requires an atomic move on the rinku-libraries filesystem", failure);
+            throw new IOException(
+                "JCEF cache publication requires an atomic move on the rinku-libraries filesystem",
+                failure);
         } catch (FileAlreadyExistsException race) {
             if (!RinkuJcefInstallationValidator.isReusable(installationDirectory, platform, javaCefCommit)) {
                 throw new IOException("A non-reusable JCEF cache leaf appeared during atomic publication", race);
@@ -225,11 +237,14 @@ public final class RinkuJcefInstaller implements AutoCloseable {
         try (var entries = Files.newDirectoryStream(stagingRootDirectory)) {
             for (Path entry : entries) {
                 if (++inspected > MAX_STAGING_ENTRIES_PER_CLEANUP) {
-                    cleanupWarning.accept(new IOException("JCEF staging cleanup exceeded its bounded entry-inspection limit"));
+                    cleanupWarning
+                        .accept(new IOException("JCEF staging cleanup exceeded its bounded entry-inspection limit"));
                     break;
                 }
-                String name = entry.getFileName().toString();
-                if (!STAGING_NAME_PATTERN.matcher(name).matches()) {
+                String name = entry.getFileName()
+                    .toString();
+                if (!STAGING_NAME_PATTERN.matcher(name)
+                    .matches()) {
                     continue;
                 }
                 if (++recognized > MAX_STAGING_DIRECTORIES_PER_CLEANUP) {
@@ -239,7 +254,8 @@ public final class RinkuJcefInstaller implements AutoCloseable {
                 try {
                     deleteInstallerOwnedPath(entry);
                 } catch (IOException failure) {
-                    cleanupWarning.accept(new IOException("Could not delete abandoned JCEF staging directory " + entry, failure));
+                    cleanupWarning
+                        .accept(new IOException("Could not delete abandoned JCEF staging directory " + entry, failure));
                 }
             }
         } catch (IOException failure) {
@@ -248,10 +264,13 @@ public final class RinkuJcefInstaller implements AutoCloseable {
     }
 
     private void deleteInstallerOwnedPath(Path path) throws IOException {
-        Path normalized = path.toAbsolutePath().normalize();
-        String name = normalized.getFileName().toString();
+        Path normalized = path.toAbsolutePath()
+            .normalize();
+        String name = normalized.getFileName()
+            .toString();
         boolean currentCommitLeaf = platformDirectory.equals(normalized.getParent()) && name.equals(javaCefCommit);
-        boolean stagingChild = stagingRootDirectory.equals(normalized.getParent()) && STAGING_NAME_PATTERN.matcher(name).matches();
+        boolean stagingChild = stagingRootDirectory.equals(normalized.getParent()) && STAGING_NAME_PATTERN.matcher(name)
+            .matches();
         if (!currentCommitLeaf && !stagingChild) {
             throw new IOException("Refusing to delete a non-installer JCEF cache path: " + normalized);
         }
@@ -263,8 +282,9 @@ public final class RinkuJcefInstaller implements AutoCloseable {
             return;
         }
 
-        int[] visited = {0};
+        int[] visited = { 0 };
         Files.walkFileTree(normalized, new SimpleFileVisitor<>() {
+
             private void count(Path entry) throws IOException {
                 if (++visited[0] > MAX_CLEANUP_ENTRIES) {
                     throw new IOException("JCEF staging cleanup exceeded its bounded tree-entry limit at " + entry);
@@ -272,7 +292,8 @@ public final class RinkuJcefInstaller implements AutoCloseable {
             }
 
             @Override
-            public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) throws IOException {
+            public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes)
+                throws IOException {
                 count(directory);
                 return FileVisitResult.CONTINUE;
             }
@@ -299,7 +320,8 @@ public final class RinkuJcefInstaller implements AutoCloseable {
         if (!Files.exists(lockFile, LinkOption.NOFOLLOW_LINKS)) {
             return;
         }
-        BasicFileAttributes attributes = Files.readAttributes(lockFile, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes attributes = Files
+            .readAttributes(lockFile, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (!attributes.isRegularFile() || attributes.isSymbolicLink()) {
             throw new IOException("Unsafe JCEF platform installation lock path: " + lockFile);
         }
@@ -366,14 +388,14 @@ public final class RinkuJcefInstaller implements AutoCloseable {
         Path directory = parent.resolve(name);
         try {
             Files.createDirectory(directory);
-        } catch (FileAlreadyExistsException ignored) {
-        }
+        } catch (FileAlreadyExistsException ignored) {}
         requireSafeDirectory(directory, "JCEF cache directory");
         return directory.toRealPath();
     }
 
     private static void requireSafeDirectory(Path directory, String description) throws IOException {
-        BasicFileAttributes attributes = Files.readAttributes(directory, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes attributes = Files
+            .readAttributes(directory, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (!attributes.isDirectory() || attributes.isSymbolicLink()) {
             throw new IOException("Missing or unsafe " + description + ": " + directory);
         }
@@ -382,8 +404,7 @@ public final class RinkuJcefInstaller implements AutoCloseable {
     private static void forceDirectoryBestEffort(Path directory) {
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
             channel.force(true);
-        } catch (IOException | UnsupportedOperationException ignored) {
-        }
+        } catch (IOException | UnsupportedOperationException ignored) {}
     }
 
     private static JvmLockLease acquireJvmLock(Path lockFile) throws IOException {
@@ -396,7 +417,8 @@ public final class RinkuJcefInstaller implements AutoCloseable {
             entry.lock.lockInterruptibly();
             return new JvmLockLease(lockFile, entry);
         } catch (InterruptedException failure) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
             releaseJvmLockReference(lockFile, entry);
             throw new IOException("Interrupted while waiting for the JCEF platform installation lock", failure);
         }
@@ -435,11 +457,13 @@ public final class RinkuJcefInstaller implements AutoCloseable {
     }
 
     private static final class JvmLockEntry {
+
         private final ReentrantLock lock = new ReentrantLock();
         private int references;
     }
 
     private static final class JvmLockLease implements AutoCloseable {
+
         private final Path lockFile;
         private final JvmLockEntry entry;
         private boolean closed;

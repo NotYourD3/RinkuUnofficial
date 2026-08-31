@@ -6,27 +6,35 @@ import java.util.Objects;
 /**
  * Separates popup callback-space retention from destination texture clipping.
  *
- * <p>CEF popup buffers always begin at popup-local coordinate {@code (0, 0)}, even when the popup itself extends
+ * <p>
+ * CEF popup buffers always begin at popup-local coordinate {@code (0, 0)}, even when the popup itself extends
  * outside the browser view. The complete callback-space dirty region must still be retained because a later view
  * resize can expose pixels which were offscreen when they arrived. Only the optional texture upload is clipped to
  * the current browser texture.
  */
 final class PopupPaintGeometry {
+
     private PopupPaintGeometry() {}
 
-    static PaintPlan plan(Rectangle dirtySource, int sourceWidth, int sourceHeight, int destinationX, int destinationY, int destinationWidth, int destinationHeight) {
+    static PaintPlan plan(Rectangle dirtySource, int sourceWidth, int sourceHeight, int destinationX, int destinationY,
+        int destinationWidth, int destinationHeight) {
         Region retainedSource = clipSource(dirtySource, sourceWidth, sourceHeight);
         if (retainedSource == null) {
             return null;
         }
 
         Upload upload = clipUpload(retainedSource, destinationX, destinationY, destinationWidth, destinationHeight);
-        boolean completeSourceFrame = retainedSource.x() == 0 && retainedSource.y() == 0 && retainedSource.width() == sourceWidth && retainedSource.height() == sourceHeight;
+        boolean completeSourceFrame = retainedSource.x() == 0 && retainedSource.y() == 0
+            && retainedSource.width() == sourceWidth
+            && retainedSource.height() == sourceHeight;
         return new PaintPlan(retainedSource, upload, completeSourceFrame);
     }
 
     private static Region clipSource(Rectangle dirtySource, int sourceWidth, int sourceHeight) {
-        if (dirtySource == null || dirtySource.width <= 0 || dirtySource.height <= 0 || sourceWidth <= 0 || sourceHeight <= 0) {
+        if (dirtySource == null || dirtySource.width <= 0
+            || dirtySource.height <= 0
+            || sourceWidth <= 0
+            || sourceHeight <= 0) {
             return null;
         }
 
@@ -40,7 +48,8 @@ final class PopupPaintGeometry {
         return new Region((int) left, (int) top, (int) (right - left), (int) (bottom - top));
     }
 
-    private static Upload clipUpload(Region retainedSource, int destinationX, int destinationY, int destinationWidth, int destinationHeight) {
+    private static Upload clipUpload(Region retainedSource, int destinationX, int destinationY, int destinationWidth,
+        int destinationHeight) {
         if (destinationWidth <= 0 || destinationHeight <= 0) {
             return null;
         }
@@ -65,6 +74,7 @@ final class PopupPaintGeometry {
     }
 
     static final class PaintPlan {
+
         private final Region retainedSource;
         private final Upload upload;
         private final boolean completeSourceFrame;
@@ -75,18 +85,26 @@ final class PopupPaintGeometry {
             this.completeSourceFrame = completeSourceFrame;
         }
 
-        Region retainedSource() { return retainedSource; }
-        Upload upload() { return upload; }
-        boolean completeSourceFrame() { return completeSourceFrame; }
+        Region retainedSource() {
+            return retainedSource;
+        }
+
+        Upload upload() {
+            return upload;
+        }
+
+        boolean completeSourceFrame() {
+            return completeSourceFrame;
+        }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             PaintPlan that = (PaintPlan) o;
-            return completeSourceFrame == that.completeSourceFrame &&
-                    Objects.equals(retainedSource, that.retainedSource) &&
-                    Objects.equals(upload, that.upload);
+            return completeSourceFrame == that.completeSourceFrame
+                && Objects.equals(retainedSource, that.retainedSource)
+                && Objects.equals(upload, that.upload);
         }
 
         @Override
@@ -96,6 +114,7 @@ final class PopupPaintGeometry {
     }
 
     static final class Upload {
+
         private final Region source;
         private final Region destination;
 
@@ -104,16 +123,20 @@ final class PopupPaintGeometry {
             this.destination = destination;
         }
 
-        Region source() { return source; }
-        Region destination() { return destination; }
+        Region source() {
+            return source;
+        }
+
+        Region destination() {
+            return destination;
+        }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Upload that = (Upload) o;
-            return Objects.equals(source, that.source) &&
-                    Objects.equals(destination, that.destination);
+            return Objects.equals(source, that.source) && Objects.equals(destination, that.destination);
         }
 
         @Override
@@ -123,6 +146,7 @@ final class PopupPaintGeometry {
     }
 
     static final class Region {
+
         private final int x;
         private final int y;
         private final int width;
@@ -130,7 +154,8 @@ final class PopupPaintGeometry {
 
         Region(int x, int y, int width, int height) {
             if (x < 0 || y < 0 || width <= 0 || height <= 0) {
-                throw new IllegalArgumentException("A paint region must have a non-negative origin and positive dimensions");
+                throw new IllegalArgumentException(
+                    "A paint region must have a non-negative origin and positive dimensions");
             }
             this.x = x;
             this.y = y;
@@ -138,10 +163,21 @@ final class PopupPaintGeometry {
             this.height = height;
         }
 
-        int x() { return x; }
-        int y() { return y; }
-        int width() { return width; }
-        int height() { return height; }
+        int x() {
+            return x;
+        }
+
+        int y() {
+            return y;
+        }
+
+        int width() {
+            return width;
+        }
+
+        int height() {
+            return height;
+        }
 
         @Override
         public boolean equals(Object o) {

@@ -1,5 +1,9 @@
 package de.keksuccino.rinku;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Locale;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.cef.callback.CefCallback;
@@ -9,11 +13,8 @@ import org.cef.misc.StringRef;
 import org.cef.network.CefRequest;
 import org.cef.network.CefResponse;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Locale;
-
 public class ModSchemeHandler implements CefResourceHandler {
+
     private static final Logger LOGGER = LogManager.getLogger("ModScheme");
 
     private String contentType = null;
@@ -43,7 +44,8 @@ public class ModSchemeHandler implements CefResourceHandler {
             return false;
         }
 
-        is = ModSchemeHandler.class.getClassLoader().getResourceAsStream("/assets/" + mod.toLowerCase(Locale.US) + "/html/" + loc.toLowerCase(Locale.US));
+        is = ModSchemeHandler.class.getClassLoader()
+            .getResourceAsStream("/assets/" + mod.toLowerCase(Locale.US) + "/html/" + loc.toLowerCase(Locale.US));
         if (is == null) {
             LOGGER.warn("Resource " + url + " NOT found!");
             cefCallback.cancel();
@@ -52,8 +54,7 @@ public class ModSchemeHandler implements CefResourceHandler {
 
         contentType = null;
         pos = loc.lastIndexOf('.');
-        if (pos >= 0 && pos < loc.length() - 2)
-            contentType = MIMEUtil.mimeFromExtension(loc.substring(pos + 1));
+        if (pos >= 0 && pos < loc.length() - 2) contentType = MIMEUtil.mimeFromExtension(loc.substring(pos + 1));
 
         cefCallback.Continue();
         return true;
@@ -61,15 +62,13 @@ public class ModSchemeHandler implements CefResourceHandler {
 
     private static String removeSlashes(String loc) {
         int i = 0;
-        while (i < loc.length() && loc.charAt(i) == '/')
-            i++;
+        while (i < loc.length() && loc.charAt(i) == '/') i++;
         return loc.substring(i);
     }
 
     @Override
     public void getResponseHeaders(CefResponse cefResponse, IntRef contentLength, StringRef redir) {
-        if (contentType != null)
-            cefResponse.setMimeType(contentType);
+        if (contentType != null) cefResponse.setMimeType(contentType);
 
         cefResponse.setStatus(200);
         cefResponse.setStatusText("OK");
@@ -91,8 +90,7 @@ public class ModSchemeHandler implements CefResourceHandler {
             LOGGER.error("Failed to read mod scheme resource stream for URL {}", this.url, e);
             try {
                 is.close();
-            } catch (Throwable ignored) {
-            }
+            } catch (Throwable ignored) {}
             return false;
         }
     }
@@ -101,7 +99,6 @@ public class ModSchemeHandler implements CefResourceHandler {
     public void cancel() {
         try {
             is.close();
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
     }
 }

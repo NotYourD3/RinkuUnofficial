@@ -1,8 +1,5 @@
 package de.keksuccino.rinku;
 
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
@@ -25,25 +22,31 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+
 /** Performs the intentionally small platform, commit, and launch-file checks for one cache leaf. */
 public final class RinkuJcefInstallationValidator {
+
     static final String COMPLETE_MARKER_FILE = ".complete";
     static final String DISTRIBUTION_MANIFEST_FILE = "DISTRIBUTION-MANIFEST.json";
 
     private static final int MAX_MANIFEST_BYTES = 16 * 1024 * 1024;
     private static final int MAX_MARKER_BYTES = 256;
     private static final Pattern COMMIT_PATTERN = Pattern.compile("[0-9a-f]{40}");
-    private static final Set<String> IDENTITY_KEYS = new HashSet<>(Arrays.asList("archive_root", "java_cef_commit", "target"));
+    private static final Set<String> IDENTITY_KEYS = new HashSet<>(
+        Arrays.asList("archive_root", "java_cef_commit", "target"));
 
-    private RinkuJcefInstallationValidator() {
-    }
+    private RinkuJcefInstallationValidator() {}
 
     public static String normalizeCommit(String commit) {
         if (commit == null) {
             throw new IllegalArgumentException("java-cef commit hash is missing");
         }
-        String normalized = commit.trim().toLowerCase(Locale.ROOT);
-        if (!COMMIT_PATTERN.matcher(normalized).matches()) {
+        String normalized = commit.trim()
+            .toLowerCase(Locale.ROOT);
+        if (!COMMIT_PATTERN.matcher(normalized)
+            .matches()) {
             throw new IllegalArgumentException("Invalid full java-cef commit hash: " + commit);
         }
         return normalized;
@@ -70,7 +73,8 @@ public final class RinkuJcefInstallationValidator {
         String normalizedCommit = normalizeCommit(expectedCommit);
         byte[] marker = markerContents(platform, normalizedCommit).getBytes(StandardCharsets.UTF_8);
         Path markerPath = installation.resolve(COMPLETE_MARKER_FILE);
-        try (FileChannel channel = FileChannel.open(markerPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
+        try (FileChannel channel = FileChannel
+            .open(markerPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
             ByteBuffer buffer = ByteBuffer.wrap(marker);
             while (buffer.hasRemaining()) {
                 channel.write(buffer);
@@ -79,7 +83,8 @@ public final class RinkuJcefInstallationValidator {
         }
     }
 
-    private static void validate(Path installation, OSPlatform platform, String expectedCommit, boolean requireComplete) throws IOException {
+    private static void validate(Path installation, OSPlatform platform, String expectedCommit, boolean requireComplete)
+        throws IOException {
         String normalizedCommit = normalizeCommit(expectedCommit);
         requireSafeDirectory(installation, "JCEF installation directory");
         Path marker = installation.resolve(COMPLETE_MARKER_FILE);
@@ -98,7 +103,8 @@ public final class RinkuJcefInstallationValidator {
         }
     }
 
-    private static void validateManifestIdentity(Path manifestPath, OSPlatform platform, String expectedCommit) throws IOException {
+    private static void validateManifestIdentity(Path manifestPath, OSPlatform platform, String expectedCommit)
+        throws IOException {
         String manifest = readSmallUtf8(manifestPath, MAX_MANIFEST_BYTES, "JCEF distribution manifest");
         String archiveRoot = null;
         String commit = null;
@@ -156,9 +162,26 @@ public final class RinkuJcefInstallationValidator {
     private static List<String> requiredFiles(OSPlatform platform) {
         List<String> required = new ArrayList<>();
         if (platform.isWindows()) {
-            required.addAll(Arrays.asList("jcef.dll", "libcef.dll", "jcef_helper.exe", "chrome_elf.dll", "d3dcompiler_47.dll", "libEGL.dll", "libGLESv2.dll", "icudtl.dat", "locales/en-US.pak"));
+            required.addAll(
+                Arrays.asList(
+                    "jcef.dll",
+                    "libcef.dll",
+                    "jcef_helper.exe",
+                    "chrome_elf.dll",
+                    "d3dcompiler_47.dll",
+                    "libEGL.dll",
+                    "libGLESv2.dll",
+                    "icudtl.dat",
+                    "locales/en-US.pak"));
         } else if (platform.isLinux()) {
-            required.addAll(Arrays.asList("libjcef.so", "libcef.so", "jcef_helper", "chrome-sandbox", "icudtl.dat", "locales/en-US.pak"));
+            required.addAll(
+                Arrays.asList(
+                    "libjcef.so",
+                    "libcef.so",
+                    "jcef_helper",
+                    "chrome-sandbox",
+                    "icudtl.dat",
+                    "locales/en-US.pak"));
         } else {
             String contents = "jcef_app.app/Contents/";
             String frameworks = contents + "Frameworks/";
@@ -238,7 +261,10 @@ public final class RinkuJcefInstallationValidator {
         }
         try {
             ByteBuffer src = (ByteBuffer) bytes.flip();
-            CharBuffer decoded = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(src);
+            CharBuffer decoded = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(src);
             return decoded.toString();
         } catch (CharacterCodingException failure) {
             throw new IOException(description + " is not valid UTF-8", failure);
@@ -248,7 +274,10 @@ public final class RinkuJcefInstallationValidator {
     private static boolean sameFileSnapshot(BasicFileAttributes before, BasicFileAttributes after) {
         Object beforeKey = before.fileKey();
         Object afterKey = after.fileKey();
-        return after.isRegularFile() && before.size() == after.size() && before.lastModifiedTime().equals(after.lastModifiedTime()) && (beforeKey == null || afterKey == null || beforeKey.equals(afterKey));
+        return after.isRegularFile() && before.size() == after.size()
+            && before.lastModifiedTime()
+                .equals(after.lastModifiedTime())
+            && (beforeKey == null || afterKey == null || beforeKey.equals(afterKey));
     }
 
     private static String markerContents(OSPlatform platform, String commit) {

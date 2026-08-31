@@ -8,13 +8,13 @@ import de.keksuccino.rinku.binarydownload.RinkuDownloader;
  */
 final class RinkuOptionsInput {
 
-    private RinkuOptionsInput() {
-    }
+    private RinkuOptionsInput() {}
 
     static int parseInt(String value, int minimum, int maximum) {
         try {
             int parsed = Integer.parseInt(requireText(value));
-            if (parsed < minimum || parsed > maximum) throw new IllegalArgumentException("Integer is outside the accepted range");
+            if (parsed < minimum || parsed > maximum)
+                throw new IllegalArgumentException("Integer is outside the accepted range");
             return parsed;
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException("Value is not an integer", exception);
@@ -24,7 +24,8 @@ final class RinkuOptionsInput {
     static long parseLong(String value, long minimum, long maximum) {
         try {
             long parsed = Long.parseLong(requireText(value));
-            if (parsed < minimum || parsed > maximum) throw new IllegalArgumentException("Long is outside the accepted range");
+            if (parsed < minimum || parsed > maximum)
+                throw new IllegalArgumentException("Long is outside the accepted range");
             return parsed;
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException("Value is not a long", exception);
@@ -38,7 +39,8 @@ final class RinkuOptionsInput {
             throw new IllegalArgumentException("A configured-only mirror cannot be blank");
         }
         String normalized = RinkuDownloader.normalizeOfficialMirror(trimmed);
-        return RinkuDownloadMirror.parse(normalized).externalForm();
+        return RinkuDownloadMirror.parse(normalized)
+            .externalForm();
     }
 
     static String parseUserAgent(String value) {
@@ -47,7 +49,8 @@ final class RinkuOptionsInput {
     }
 
     private static String requireText(String value) {
-        if (value == null || value.trim().isEmpty()) throw new NumberFormatException("Value is blank");
+        if (value == null || value.trim()
+            .isEmpty()) throw new NumberFormatException("Value is blank");
         return value.trim();
     }
 

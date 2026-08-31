@@ -1,7 +1,8 @@
 package de.keksuccino.rinku.binarydownload;
 
-import net.minecraft.util.IChatComponent;
 import java.util.Objects;
+
+import net.minecraft.util.IChatComponent;
 
 public class RinkuDownloadListener {
 

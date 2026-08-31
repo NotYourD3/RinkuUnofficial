@@ -1,12 +1,14 @@
 package de.keksuccino.rinku;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import java.io.IOException;
+
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.resources.IResourceManager;
+
 import org.lwjgl.opengl.GL11;
 
-import java.io.IOException;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class RinkuDirectTexture extends AbstractTexture {
@@ -16,8 +18,7 @@ public class RinkuDirectTexture extends AbstractTexture {
     private int glTextureId;
     private boolean ready;
 
-    public RinkuDirectTexture() {
-    }
+    public RinkuDirectTexture() {}
 
     public void bindTexture(int textureSourceGlId, int width, int height) {
         this.glTextureId = textureSourceGlId;
@@ -43,8 +44,7 @@ public class RinkuDirectTexture extends AbstractTexture {
     }
 
     @Override
-    public void loadTexture(IResourceManager p_110551_1_) throws IOException {
-    }
+    public void loadTexture(IResourceManager p_110551_1_) throws IOException {}
 
     @Override
     public int getGlTextureId() {

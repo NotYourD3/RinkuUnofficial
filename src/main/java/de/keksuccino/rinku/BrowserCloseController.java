@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Coordinates terminal admission shutdown and native close as independent exactly-once actions. */
 final class BrowserCloseController {
+
     private final AtomicBoolean closeRequested = new AtomicBoolean();
     private final AtomicBoolean nativeCloseStarted = new AtomicBoolean();
 

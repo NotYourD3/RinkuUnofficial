@@ -1,14 +1,17 @@
 package de.keksuccino.rinku.util;
 
-import de.keksuccino.rinku.platform.Services;
-import net.minecraft.client.Minecraft;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+
+import net.minecraft.client.Minecraft;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import de.keksuccino.rinku.platform.Services;
 
 public class GameDirectoryUtils {
 
@@ -23,12 +26,16 @@ public class GameDirectoryUtils {
                 }
             } else {
                 Path path = Paths.get("server.properties");
-                return path.toAbsolutePath().getParent().toFile();
+                return path.toAbsolutePath()
+                    .getParent()
+                    .toFile();
             }
         } catch (Exception ex) {
             LOGGER.error("[Rinku] Failed to get game directory!", ex);
         }
-        Path workingDirectory = Paths.get("").toAbsolutePath().normalize();
+        Path workingDirectory = Paths.get("")
+            .toAbsolutePath()
+            .normalize();
         if (Files.isDirectory(workingDirectory)) {
             return workingDirectory.toFile();
         }
@@ -38,7 +45,8 @@ public class GameDirectoryUtils {
     public static boolean isExistingGameDirectoryPath(String path) {
         Objects.requireNonNull(path);
         path = path.replace("\\", "/");
-        String gameDir = getGameDirectory().getAbsolutePath().replace("\\", "/");
+        String gameDir = getGameDirectory().getAbsolutePath()
+            .replace("\\", "/");
         if (!path.startsWith(gameDir)) {
             path = gameDir + "/" + path;
         }
@@ -48,7 +56,8 @@ public class GameDirectoryUtils {
     public static String getAbsoluteGameDirectoryPath(String path) {
         try {
             path = path.replace("\\", "/");
-            String gameDir = getGameDirectory().getAbsolutePath().replace("\\", "/");
+            String gameDir = getGameDirectory().getAbsolutePath()
+                .replace("\\", "/");
             if (!path.startsWith(gameDir)) {
                 if (path.startsWith("/")) path = path.substring(1);
                 return gameDir + "/" + path;
@@ -62,7 +71,12 @@ public class GameDirectoryUtils {
     public static String getPathWithoutGameDirectory(String path) {
         Objects.requireNonNull(path);
         File f = new File(getAbsoluteGameDirectoryPath(path));
-        String p = f.getAbsolutePath().replace("\\", "/").replace(getGameDirectory().getAbsolutePath().replace("\\", "/"), "");
+        String p = f.getAbsolutePath()
+            .replace("\\", "/")
+            .replace(
+                getGameDirectory().getAbsolutePath()
+                    .replace("\\", "/"),
+                "");
         if (p.startsWith("/")) p = p.substring(1);
         return p;
     }

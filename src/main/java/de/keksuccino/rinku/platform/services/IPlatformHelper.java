@@ -1,7 +1,8 @@
 package de.keksuccino.rinku.platform.services;
 
-import net.minecraft.client.settings.KeyBinding;
 import java.util.List;
+
+import net.minecraft.client.settings.KeyBinding;
 
 public interface IPlatformHelper {
 

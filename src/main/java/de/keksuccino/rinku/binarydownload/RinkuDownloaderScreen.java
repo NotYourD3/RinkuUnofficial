@@ -1,15 +1,15 @@
 package de.keksuccino.rinku.binarydownload;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import javax.annotation.Nullable;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
-import org.lwjgl.opengl.GL11;
 
-import javax.annotation.Nullable;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class RinkuDownloaderScreen extends GuiScreen {
@@ -40,10 +40,10 @@ public class RinkuDownloaderScreen extends GuiScreen {
         int fillWidth = (int) ((progressBarWidth - 4) * RinkuDownloadListener.INSTANCE.getProgress());
         drawRect(barX + 4, barY + 4, barX + 4 + fillWidth, barY + progressBarHeight - 4, 0xFFFFFFFF);
 
-        IChatComponent[] text = new IChatComponent[] {
-                RinkuDownloadListener.INSTANCE.getTask(),
-                new ChatComponentTranslation("rinku.downloader.progress", Math.round(RinkuDownloadListener.INSTANCE.getProgress() * 100)),
-        };
+        IChatComponent[] text = new IChatComponent[] { RinkuDownloadListener.INSTANCE.getTask(),
+            new ChatComponentTranslation(
+                "rinku.downloader.progress",
+                Math.round(RinkuDownloadListener.INSTANCE.getProgress() * 100)), };
 
         int lineHeight = this.fontRendererObj.FONT_HEIGHT;
         int oSet = ((lineHeight / 2) + ((lineHeight + 2) * (text.length + 2))) + 4;
@@ -68,13 +68,13 @@ public class RinkuDownloaderScreen extends GuiScreen {
     @Override
     public void updateScreen() {
         if (RinkuDownloadListener.INSTANCE.isDone() || RinkuDownloadListener.INSTANCE.isFailed()) {
-            Minecraft.getMinecraft().displayGuiScreen(this.parent);
+            Minecraft.getMinecraft()
+                .displayGuiScreen(this.parent);
         }
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) {
-    }
+    protected void keyTyped(char typedChar, int keyCode) {}
 
     @Override
     public boolean doesGuiPauseGame() {

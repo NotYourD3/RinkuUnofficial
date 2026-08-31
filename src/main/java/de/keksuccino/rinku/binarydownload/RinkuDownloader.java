@@ -1,13 +1,5 @@
 package de.keksuccino.rinku.binarydownload;
 
-import de.keksuccino.rinku.*;
-import de.keksuccino.rinku.util.GameDirectoryUtils;
-import net.minecraft.util.ChatComponentTranslation;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.github.bsideup.jabel.Desugar;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -33,6 +25,16 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.minecraft.util.ChatComponentTranslation;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.github.bsideup.jabel.Desugar;
+
+import de.keksuccino.rinku.*;
+import de.keksuccino.rinku.util.GameDirectoryUtils;
+
 public class RinkuDownloader {
 
     private static final Logger LOGGER = LogManager.getLogger(Rinku.MOD_ID);
@@ -46,8 +48,10 @@ public class RinkuDownloader {
     private static final String JAVA_CEF_RELEASE_TAG_PREFIX = "java-cef-";
     private static final RinkuDownloadMirror OFFICIAL_DOWNLOAD_MIRROR = RinkuDownloadMirror.parse(OFFICIAL_MIRROR);
     private static final int DOWNLOAD_BUFFER_SIZE_BYTES = 16 * 1024;
-    private static final Pattern GNU_SHA256_PATTERN = Pattern.compile("(?i)^([0-9a-f]{64})(?:[ \\t]+\\*?([^\\r\\n]+))?$");
-    private static final Pattern BSD_SHA256_PATTERN = Pattern.compile("(?i)^SHA256[ \\t]*\\(([^\\r\\n]+)\\)[ \\t]*=[ \\t]*([0-9a-f]{64})$");
+    private static final Pattern GNU_SHA256_PATTERN = Pattern
+        .compile("(?i)^([0-9a-f]{64})(?:[ \\t]+\\*?([^\\r\\n]+))?$");
+    private static final Pattern BSD_SHA256_PATTERN = Pattern
+        .compile("(?i)^SHA256[ \\t]*\\(([^\\r\\n]+)\\)[ \\t]*=[ \\t]*([0-9a-f]{64})$");
     private static final Pattern SHA256_PATTERN = Pattern.compile("[0-9a-f]{64}");
 
     private final String host;
@@ -60,7 +64,10 @@ public class RinkuDownloader {
     private final ArchiveExtractor archiveExtractor;
     private volatile HttpURLConnection activeConnection_RINKU = null;
 
-    /** Attempts to forcibly abort any in-progress HTTP download by closing the underlying connection. Unblocks threads stuck in socket read(). */
+    /**
+     * Attempts to forcibly abort any in-progress HTTP download by closing the underlying connection. Unblocks threads
+     * stuck in socket read().
+     */
     public static void cancelAnyActiveDownload_RINKU() {
         RinkuDownloader d = activeDownloader_RINKU;
         if (d != null) {
@@ -69,15 +76,16 @@ public class RinkuDownloader {
                 try {
                     LOGGER.info("Forcibly disconnecting active Rinku download connection.");
                     c.disconnect();
-                } catch (Throwable ignored) {
-                }
+                } catch (Throwable ignored) {}
             }
         }
     }
 
     /** Installer network and decompression limits. */
     @Desugar
-    public record DownloadPolicy(MirrorPolicy mirrorPolicy, boolean enforceChecksums, int connectTimeoutMs, int readTimeoutMs, long maxArchiveBytes, long maxChecksumBytes, long maxExtractedBytes) {
+    public record DownloadPolicy(MirrorPolicy mirrorPolicy, boolean enforceChecksums, int connectTimeoutMs,
+        int readTimeoutMs, long maxArchiveBytes, long maxChecksumBytes, long maxExtractedBytes) {
+
         public DownloadPolicy {
             mirrorPolicy = mirrorPolicy == null ? MirrorPolicy.OFFICIAL_ONLY : mirrorPolicy;
             connectTimeoutMs = Math.max(1_000, connectTimeoutMs);
@@ -88,14 +96,25 @@ public class RinkuDownloader {
         }
 
         public static DownloadPolicy defaults() {
-            return new DownloadPolicy(MirrorPolicy.OFFICIAL_ONLY, true, 15_000, 60_000, 750L * 1024L * 1024L, 64L * 1024L, 2_000L * 1024L * 1024L);
+            return new DownloadPolicy(
+                MirrorPolicy.OFFICIAL_ONLY,
+                true,
+                15_000,
+                60_000,
+                750L * 1024L * 1024L,
+                64L * 1024L,
+                2_000L * 1024L * 1024L);
         }
     }
 
     @Desugar
     public record InstallationResult(Path installationDirectory, boolean downloaded) {
+
         public InstallationResult {
-            installationDirectory = Objects.requireNonNull(installationDirectory, "JCEF installation directory must not be null").toAbsolutePath().normalize();
+            installationDirectory = Objects
+                .requireNonNull(installationDirectory, "JCEF installation directory must not be null")
+                .toAbsolutePath()
+                .normalize();
         }
     }
 
@@ -109,15 +128,19 @@ public class RinkuDownloader {
 
     /**
      * Injectable constructor used by deterministic installer integrations and regression tests.
-     * Production callers should normally use the shorter constructors so the build-pinned commit and real I/O remain authoritative.
+     * Production callers should normally use the shorter constructors so the build-pinned commit and real I/O remain
+     * authoritative.
      */
-    public RinkuDownloader(String host, String javaCefCommitHash, OSPlatform platform, DownloadPolicy downloadPolicy, Path librariesDirectory, ArtifactDownloader artifactDownloader, ArchiveExtractor archiveExtractor) {
+    public RinkuDownloader(String host, String javaCefCommitHash, OSPlatform platform, DownloadPolicy downloadPolicy,
+        Path librariesDirectory, ArtifactDownloader artifactDownloader, ArchiveExtractor archiveExtractor) {
         this.javaCefCommitHash = RinkuJcefInstallationValidator.normalizeCommit(javaCefCommitHash);
         this.platform = Objects.requireNonNull(platform, "Rinku platform must not be null");
         this.downloadPolicy = downloadPolicy == null ? DownloadPolicy.defaults() : downloadPolicy;
         configuredMirror = resolveConfiguredMirror(host, this.downloadPolicy.mirrorPolicy());
         this.host = configuredMirror == null ? OFFICIAL_MIRROR : configuredMirror.externalForm();
-        librariesDirectoryOverride = librariesDirectory == null ? null : librariesDirectory.toAbsolutePath().normalize();
+        librariesDirectoryOverride = librariesDirectory == null ? null
+            : librariesDirectory.toAbsolutePath()
+                .normalize();
         this.artifactDownloader = artifactDownloader;
         this.archiveExtractor = archiveExtractor;
     }
@@ -141,7 +164,11 @@ public class RinkuDownloader {
     /** Reuses only a valid completed exact-commit leaf; otherwise installs it under one platform lock. */
     public InstallationResult installOrUpdate(boolean skipDownload) throws IOException {
         activeDownloader_RINKU = this;
-        LOGGER.info("RinkuDownloader.installOrUpdate called; skipDownload={}; host={}; commit={}", skipDownload, host, javaCefCommitHash);
+        LOGGER.info(
+            "RinkuDownloader.installOrUpdate called; skipDownload={}; host={}; commit={}",
+            skipDownload,
+            host,
+            javaCefCommitHash);
         try (RinkuJcefInstaller installer = newInstaller()) {
             installer.recover();
             Path reusable = installer.findReusableInstallation();
@@ -150,7 +177,8 @@ public class RinkuDownloader {
                 return new InstallationResult(reusable, false);
             }
             if (skipDownload) {
-                throw new IOException("skip-download=true but the exact JCEF commit has no complete valid local installation");
+                throw new IOException(
+                    "skip-download=true but the exact JCEF commit has no complete valid local installation");
             }
 
             Throwable lastFailure = null;
@@ -169,7 +197,9 @@ public class RinkuDownloader {
                     } catch (Throwable cleanupFailure) {
                         failure.addSuppressed(cleanupFailure);
                     }
-                    LOGGER.warn("JCEF release validation failed for {}; trying the next permitted mirror if available", mirror.safeLogIdentity());
+                    LOGGER.warn(
+                        "JCEF release validation failed for {}; trying the next permitted mirror if available",
+                        mirror.safeLogIdentity());
                 }
             }
             throw asIOExceptionOrThrowRuntime(lastFailure);
@@ -189,23 +219,44 @@ public class RinkuDownloader {
 
     private Path installFromMirror(RinkuJcefInstaller installer, RinkuDownloadMirror mirror) throws IOException {
         String expectedChecksum = downloadChecksumFromMirror(installer, mirror);
-        RinkuDownloadListener.INSTANCE.setTask(new ChatComponentTranslation("rinku.downloader.task.downloading_framework"));
-        downloadArtifact(mirror, archiveAssetName(), installer.candidateArchive().toFile(), downloadPolicy.maxArchiveBytes());
-        try (RinkuVerifiedArchiveSource archive = RinkuVerifiedArchiveSource.open(installer.candidateArchive(), downloadPolicy.maxArchiveBytes())) {
+        RinkuDownloadListener.INSTANCE
+            .setTask(new ChatComponentTranslation("rinku.downloader.task.downloading_framework"));
+        downloadArtifact(
+            mirror,
+            archiveAssetName(),
+            installer.candidateArchive()
+                .toFile(),
+            downloadPolicy.maxArchiveBytes());
+        try (RinkuVerifiedArchiveSource archive = RinkuVerifiedArchiveSource
+            .open(installer.candidateArchive(), downloadPolicy.maxArchiveBytes())) {
             String actualDigest = archive.calculateDigest();
             if (expectedChecksum != null && !expectedChecksum.equals(actualDigest)) {
                 throw new IOException("Checksum mismatch for downloaded JCEF archive");
             }
-            extractArchive(archive, actualDigest, installer.extractionDirectory().toFile());
+            extractArchive(
+                archive,
+                actualDigest,
+                installer.extractionDirectory()
+                    .toFile());
         }
         return installer.publish();
     }
 
-    private String downloadChecksumFromMirror(RinkuJcefInstaller installer, RinkuDownloadMirror mirror) throws IOException {
+    private String downloadChecksumFromMirror(RinkuJcefInstaller installer, RinkuDownloadMirror mirror)
+        throws IOException {
         try {
-            RinkuDownloadListener.INSTANCE.setTask(new ChatComponentTranslation("rinku.downloader.task.downloading_checksum"));
-            downloadArtifact(mirror, checksumAssetName(), installer.candidateChecksum().toFile(), downloadPolicy.maxChecksumBytes());
-            String expectedChecksum = readChecksum(installer.candidateChecksum().toFile(), downloadPolicy.enforceChecksums());
+            RinkuDownloadListener.INSTANCE
+                .setTask(new ChatComponentTranslation("rinku.downloader.task.downloading_checksum"));
+            downloadArtifact(
+                mirror,
+                checksumAssetName(),
+                installer.candidateChecksum()
+                    .toFile(),
+                downloadPolicy.maxChecksumBytes());
+            String expectedChecksum = readChecksum(
+                installer.candidateChecksum()
+                    .toFile(),
+                downloadPolicy.enforceChecksums());
             if (expectedChecksum == null && downloadPolicy.enforceChecksums()) {
                 throw new IOException("Missing or invalid JCEF checksum");
             }
@@ -217,21 +268,31 @@ public class RinkuDownloader {
             if (downloadPolicy.enforceChecksums()) {
                 throw failure;
             }
-            LOGGER.warn("A valid JCEF checksum was unavailable from {}; continuing with the explicitly unchecked archive from that mirror", mirror.safeLogIdentity());
+            LOGGER.warn(
+                "A valid JCEF checksum was unavailable from {}; continuing with the explicitly unchecked archive from that mirror",
+                mirror.safeLogIdentity());
             installer.discardCandidateChecksum();
             return null;
         }
     }
 
     private RinkuJcefInstaller newInstaller() throws IOException {
-        return new RinkuJcefInstaller(getLibrariesDirectory(), platform, javaCefCommitHash, failure -> LOGGER.warn("Could not completely clean JCEF installer staging residue; cleanup will retry later.", failure));
+        return new RinkuJcefInstaller(
+            getLibrariesDirectory(),
+            platform,
+            javaCefCommitHash,
+            failure -> LOGGER
+                .warn("Could not completely clean JCEF installer staging residue; cleanup will retry later.", failure));
     }
 
     private Path getLibrariesDirectory() {
-        return librariesDirectoryOverride == null ? GameDirectoryUtils.getGameDirectory().toPath().resolve("rinku-libraries") : librariesDirectoryOverride;
+        return librariesDirectoryOverride == null ? GameDirectoryUtils.getGameDirectory()
+            .toPath()
+            .resolve("rinku-libraries") : librariesDirectoryOverride;
     }
 
-    private void downloadArtifact(RinkuDownloadMirror mirror, String assetName, File outputFile, long maxBytes) throws IOException {
+    private void downloadArtifact(RinkuDownloadMirror mirror, String assetName, File outputFile, long maxBytes)
+        throws IOException {
         Path output = outputFile.toPath();
         if (Files.exists(output, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Refusing to replace pre-existing JCEF download target: " + output);
@@ -262,17 +323,26 @@ public class RinkuDownloader {
         }
     }
 
-    private void extractArchive(RinkuVerifiedArchiveSource archive, String expectedDigest, File outputDirectory) throws IOException {
+    private void extractArchive(RinkuVerifiedArchiveSource archive, String expectedDigest, File outputDirectory)
+        throws IOException {
         RinkuDownloadListener.INSTANCE.setTask(new ChatComponentTranslation("rinku.downloader.task.extracting"));
         if (archiveExtractor != null) {
             archive.verifiedPass(expectedDigest, input -> archiveExtractor.extract(input, outputDirectory));
             return;
         }
-        RinkuSecureArchiveExtractor.extract(archive, expectedDigest, outputDirectory, platform, downloadPolicy, RinkuDownloadListener.INSTANCE::setProgress);
+        RinkuSecureArchiveExtractor.extract(
+            archive,
+            expectedDigest,
+            outputDirectory,
+            platform,
+            downloadPolicy,
+            RinkuDownloadListener.INSTANCE::setProgress);
     }
 
     private void downloadFile(URI assetUri, String mirrorIdentity, File outputFile, long maxBytes) throws IOException {
-        Path output = outputFile.toPath().toAbsolutePath().normalize();
+        Path output = outputFile.toPath()
+            .toAbsolutePath()
+            .normalize();
         Path parent = output.getParent();
         if (parent == null || !Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Unsafe JCEF download directory: " + parent);
@@ -295,7 +365,9 @@ public class RinkuDownloader {
             if (responseCode < 200 || responseCode >= 300) {
                 throw new IOException("Unexpected HTTP status " + responseCode);
             }
-            if (!"https".equalsIgnoreCase(urlConnection.getURL().getProtocol())) {
+            if (!"https".equalsIgnoreCase(
+                urlConnection.getURL()
+                    .getProtocol())) {
                 throw new IOException("JCEF download redirected outside HTTPS");
             }
             long fileSize = urlConnection.getContentLengthLong();
@@ -304,12 +376,23 @@ public class RinkuDownloader {
             }
             LOGGER.info("Connected successfully; asset size = {} bytes; starting transfer.", fileSize);
 
-            try (BufferedInputStream inputStream = new BufferedInputStream(urlConnection.getInputStream(), DOWNLOAD_BUFFER_SIZE_BYTES); FileChannel outputChannel = FileChannel.open(tempOutput, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
-                BufferedOutputStream outputStream = new BufferedOutputStream(Channels.newOutputStream(outputChannel), DOWNLOAD_BUFFER_SIZE_BYTES);
+            try (
+                BufferedInputStream inputStream = new BufferedInputStream(
+                    urlConnection.getInputStream(),
+                    DOWNLOAD_BUFFER_SIZE_BYTES);
+                FileChannel outputChannel = FileChannel.open(
+                    tempOutput,
+                    StandardOpenOption.CREATE_NEW,
+                    StandardOpenOption.WRITE,
+                    LinkOption.NOFOLLOW_LINKS)) {
+                BufferedOutputStream outputStream = new BufferedOutputStream(
+                    Channels.newOutputStream(outputChannel),
+                    DOWNLOAD_BUFFER_SIZE_BYTES);
                 byte[] buffer = new byte[DOWNLOAD_BUFFER_SIZE_BYTES];
                 int count;
                 while ((count = inputStream.read(buffer)) != -1) {
-                    if (Thread.currentThread().isInterrupted()) {
+                    if (Thread.currentThread()
+                        .isInterrupted()) {
                         throw new IOException("Download interrupted by shutdown");
                     }
                     outputStream.write(buffer, 0, count);
@@ -331,7 +414,12 @@ public class RinkuDownloader {
             }
             RinkuDownloadListener.INSTANCE.setProgress(1.0f);
         } catch (IOException failure) {
-            IOException sanitizedFailure = new IOException("Failed to download a JCEF asset from " + mirrorIdentity + " (" + failure.getClass().getSimpleName() + ")");
+            IOException sanitizedFailure = new IOException(
+                "Failed to download a JCEF asset from " + mirrorIdentity
+                    + " ("
+                    + failure.getClass()
+                        .getSimpleName()
+                    + ")");
             try {
                 Files.deleteIfExists(tempOutput);
             } catch (IOException cleanupFailure) {
@@ -371,7 +459,8 @@ public class RinkuDownloader {
             if (channel.size() != checksumSize) {
                 throw new IOException("Checksum file changed while it was being read: " + checksumFile.getName());
             }
-            content = StandardCharsets.UTF_8.decode((ByteBuffer) buffer.flip()).toString();
+            content = StandardCharsets.UTF_8.decode((ByteBuffer) buffer.flip())
+                .toString();
         }
         String checksum = extractSha256Token(content);
         if (checksum == null && strict) {
@@ -381,7 +470,8 @@ public class RinkuDownloader {
     }
 
     private String extractSha256Token(String content) {
-        if (content == null || content.trim().isEmpty()) {
+        if (content == null || content.trim()
+            .isEmpty()) {
             return null;
         }
         String trimmed = content.trim();
@@ -398,7 +488,8 @@ public class RinkuDownloader {
     }
 
     private boolean checksumAssetMatches(String assetName) {
-        String normalizedName = assetName.trim().replace('\\', '/');
+        String normalizedName = assetName.trim()
+            .replace('\\', '/');
         int finalSeparator = normalizedName.lastIndexOf('/');
         String baseName = finalSeparator < 0 ? normalizedName : normalizedName.substring(finalSeparator + 1);
         return baseName.equalsIgnoreCase(archiveAssetName());
@@ -432,7 +523,8 @@ public class RinkuDownloader {
                 if (configuredMirror != null) {
                     mirrors.add(configuredMirror);
                 }
-                if (configuredMirror == null || !configuredMirror.externalForm().equals(OFFICIAL_DOWNLOAD_MIRROR.externalForm())) {
+                if (configuredMirror == null || !configuredMirror.externalForm()
+                    .equals(OFFICIAL_DOWNLOAD_MIRROR.externalForm())) {
                     mirrors.add(OFFICIAL_DOWNLOAD_MIRROR);
                 }
             }
@@ -450,7 +542,8 @@ public class RinkuDownloader {
         if (policy == MirrorPolicy.OFFICIAL_ONLY) {
             return null;
         }
-        if (host == null || host.trim().isEmpty()) {
+        if (host == null || host.trim()
+            .isEmpty()) {
             if (policy == MirrorPolicy.CONFIGURED_ONLY) {
                 throw new IllegalArgumentException("CONFIGURED_ONLY requires a valid JCEF mirror");
             }
@@ -477,7 +570,9 @@ public class RinkuDownloader {
             return null;
         }
         String normalized = stripTrailingSlash(mirror.trim());
-        if (stripTrailingSlash(FORMER_REPOSITORY_OFFICIAL_MIRROR).equalsIgnoreCase(normalized) || stripTrailingSlash(PREVIOUS_OFFICIAL_MIRROR).equalsIgnoreCase(normalized) || stripTrailingSlash(LEGACY_OFFICIAL_MIRROR).equalsIgnoreCase(normalized)) {
+        if (stripTrailingSlash(FORMER_REPOSITORY_OFFICIAL_MIRROR).equalsIgnoreCase(normalized)
+            || stripTrailingSlash(PREVIOUS_OFFICIAL_MIRROR).equalsIgnoreCase(normalized)
+            || stripTrailingSlash(LEGACY_OFFICIAL_MIRROR).equalsIgnoreCase(normalized)) {
             return OFFICIAL_MIRROR;
         }
         return normalized;
@@ -485,7 +580,8 @@ public class RinkuDownloader {
 
     private static String normalizeDigest(String digest) {
         String normalized = digest.toLowerCase(Locale.ROOT);
-        if (!SHA256_PATTERN.matcher(normalized).matches()) {
+        if (!SHA256_PATTERN.matcher(normalized)
+            .matches()) {
             throw new IllegalArgumentException("Invalid SHA-256 digest");
         }
         return normalized;
@@ -517,11 +613,13 @@ public class RinkuDownloader {
 
     @FunctionalInterface
     public interface ArtifactDownloader {
+
         void download(String assetUrl, File outputFile, long maxBytes) throws IOException;
     }
 
     @FunctionalInterface
     public interface ArchiveExtractor {
+
         void extract(InputStream archive, File outputDirectory) throws IOException;
     }
 

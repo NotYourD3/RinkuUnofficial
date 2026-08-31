@@ -20,7 +20,6 @@ public class GlfwConstantsBridge {
     public static final int GLFW_CURSOR_NORMAL = 0x00034001;
     public static final int GLFW_CURSOR_HIDDEN = 0x00034002;
 
-    private GlfwConstantsBridge() {
-    }
+    private GlfwConstantsBridge() {}
 
 }

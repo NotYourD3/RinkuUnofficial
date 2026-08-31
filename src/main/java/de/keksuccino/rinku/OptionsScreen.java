@@ -1,18 +1,5 @@
 package de.keksuccino.rinku;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import de.keksuccino.rinku.binarydownload.RinkuDownloader;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.util.ChatComponentTranslation;
-import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.IChatComponent;
-import org.cef.CefSettings;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +8,21 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.IChatComponent;
+
+import org.cef.CefSettings;
+
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import de.keksuccino.rinku.binarydownload.RinkuDownloader;
 
 @SideOnly(Side.CLIENT)
 public class OptionsScreen extends GuiScreen {
@@ -74,13 +76,20 @@ public class OptionsScreen extends GuiScreen {
     }
 
     private void initializePendingTextValues() {
-        this.pendingTextValues.put("user-agent", this.settings.getUserAgent() == null ? "" : this.settings.getUserAgent());
-        this.pendingTextValues.put("download-mirror", this.settings.getDownloadMirror() == null ? "" : this.settings.getDownloadMirror());
-        this.pendingTextValues.put("download-connect-timeout-ms", Integer.toString(this.settings.getDownloadConnectTimeoutMs()));
-        this.pendingTextValues.put("download-read-timeout-ms", Integer.toString(this.settings.getDownloadReadTimeoutMs()));
-        this.pendingTextValues.put("download-max-archive-bytes", Long.toString(this.settings.getDownloadMaxArchiveBytes()));
-        this.pendingTextValues.put("download-max-checksum-bytes", Long.toString(this.settings.getDownloadMaxChecksumBytes()));
-        this.pendingTextValues.put("download-max-extracted-bytes", Long.toString(this.settings.getDownloadMaxExtractedBytes()));
+        this.pendingTextValues
+            .put("user-agent", this.settings.getUserAgent() == null ? "" : this.settings.getUserAgent());
+        this.pendingTextValues
+            .put("download-mirror", this.settings.getDownloadMirror() == null ? "" : this.settings.getDownloadMirror());
+        this.pendingTextValues
+            .put("download-connect-timeout-ms", Integer.toString(this.settings.getDownloadConnectTimeoutMs()));
+        this.pendingTextValues
+            .put("download-read-timeout-ms", Integer.toString(this.settings.getDownloadReadTimeoutMs()));
+        this.pendingTextValues
+            .put("download-max-archive-bytes", Long.toString(this.settings.getDownloadMaxArchiveBytes()));
+        this.pendingTextValues
+            .put("download-max-checksum-bytes", Long.toString(this.settings.getDownloadMaxChecksumBytes()));
+        this.pendingTextValues
+            .put("download-max-extracted-bytes", Long.toString(this.settings.getDownloadMaxExtractedBytes()));
     }
 
     @Override
@@ -98,15 +107,39 @@ public class OptionsScreen extends GuiScreen {
 
         int tabWidth = this.width / 3;
         int tabY = 20;
-        tabBrowserButton = new GuiButton(ID_TAB_BROWSER, 0, tabY, tabWidth, BUTTON_HEIGHT, translate("rinku.options.tab.browser"));
-        tabDownloadsButton = new GuiButton(ID_TAB_DOWNLOADS, tabWidth, tabY, tabWidth, BUTTON_HEIGHT, translate("rinku.options.tab.downloads"));
-        tabAdvancedButton = new GuiButton(ID_TAB_ADVANCED, tabWidth * 2, tabY, this.width - tabWidth * 2, BUTTON_HEIGHT, translate("rinku.options.tab.advanced"));
+        tabBrowserButton = new GuiButton(
+            ID_TAB_BROWSER,
+            0,
+            tabY,
+            tabWidth,
+            BUTTON_HEIGHT,
+            translate("rinku.options.tab.browser"));
+        tabDownloadsButton = new GuiButton(
+            ID_TAB_DOWNLOADS,
+            tabWidth,
+            tabY,
+            tabWidth,
+            BUTTON_HEIGHT,
+            translate("rinku.options.tab.downloads"));
+        tabAdvancedButton = new GuiButton(
+            ID_TAB_ADVANCED,
+            tabWidth * 2,
+            tabY,
+            this.width - tabWidth * 2,
+            BUTTON_HEIGHT,
+            translate("rinku.options.tab.advanced"));
         this.buttonList.add(tabBrowserButton);
         this.buttonList.add(tabDownloadsButton);
         this.buttonList.add(tabAdvancedButton);
 
         int doneW = 150;
-        doneButton = new GuiButton(ID_DONE, (this.width - doneW) / 2, this.height - BUTTON_HEIGHT - 10, doneW, BUTTON_HEIGHT, translate("gui.done"));
+        doneButton = new GuiButton(
+            ID_DONE,
+            (this.width - doneW) / 2,
+            this.height - BUTTON_HEIGHT - 10,
+            doneW,
+            BUTTON_HEIGHT,
+            translate("gui.done"));
         this.buttonList.add(doneButton);
 
         buildCurrentTab();
@@ -119,8 +152,7 @@ public class OptionsScreen extends GuiScreen {
         currentTabOptionButtons.clear();
         currentTabTextFields.clear();
         currentTabLabels.clear();
-        for (GuiTextField tf : currentTabTextFields) {
-        }
+        for (GuiTextField tf : currentTabTextFields) {}
         currentTabTextFields.clear();
         currentTabLabels.clear();
 
@@ -136,24 +168,53 @@ public class OptionsScreen extends GuiScreen {
     private void buildBrowserTab() {
         int rowY = 60 + OPTION_SECTION_PADDING_TOP;
 
-        addTextOption(rowY, BROWSER_TAB_INDEX, new TextOption<>("user-agent", "rinku.options.user_agent", "rinku.options.user_agent.desc", 512, RinkuOptionsInput::parseUserAgent, this.settings::getUserAgent, this.settings::setUserAgent, translate("rinku.options.validation.user_agent")));
+        addTextOption(
+            rowY,
+            BROWSER_TAB_INDEX,
+            new TextOption<>(
+                "user-agent",
+                "rinku.options.user_agent",
+                "rinku.options.user_agent.desc",
+                512,
+                RinkuOptionsInput::parseUserAgent,
+                this.settings::getUserAgent,
+                this.settings::setUserAgent,
+                translate("rinku.options.validation.user_agent")));
         rowY += OPTION_ROW_ADVANCE * 2;
 
-        addFullWidthOption(rowY, this.buildBooleanButton("rinku.options.use_cache", "rinku.options.use_cache.desc", this.settings::isUsingCache, this.settings::setUseCache));
+        addFullWidthOption(
+            rowY,
+            this.buildBooleanButton(
+                "rinku.options.use_cache",
+                "rinku.options.use_cache.desc",
+                this.settings::isUsingCache,
+                this.settings::setUseCache));
         rowY += OPTION_ROW_ADVANCE;
 
-        addFullWidthOption(rowY, this.buildBooleanButton("rinku.options.enable_widevine", "rinku.options.enable_widevine.desc", this.settings::isEnableWidevineCdm, this.settings::setEnableWidevineCdm));
+        addFullWidthOption(
+            rowY,
+            this.buildBooleanButton(
+                "rinku.options.enable_widevine",
+                "rinku.options.enable_widevine.desc",
+                this.settings::isEnableWidevineCdm,
+                this.settings::setEnableWidevineCdm));
         rowY += OPTION_ROW_ADVANCE + OPTION_SECTION_PADDING_TOP;
 
         this.preloadEnabledButton = this.buildPreloadEnabledButton();
         addFullWidthOption(rowY, this.preloadEnabledButton);
         rowY += OPTION_ROW_ADVANCE;
 
-        this.transparentPoolSizeButton = this.buildPoolSizeButton("rinku.options.preload_transparent_pool_size", this.settings::getBrowserPreloadTransparentPoolSize, this.settings::setBrowserPreloadTransparentPoolSize);
+        this.transparentPoolSizeButton = this.buildPoolSizeButton(
+            "rinku.options.preload_transparent_pool_size",
+            this.settings::getBrowserPreloadTransparentPoolSize,
+            this.settings::setBrowserPreloadTransparentPoolSize);
         addFullWidthOption(rowY, this.transparentPoolSizeButton);
         rowY += OPTION_ROW_ADVANCE;
 
-        this.opaquePoolSizeButton = this.buildPoolSizeButton("rinku.options.preload_opaque_pool_size", this.settings::getBrowserPreloadOpaquePoolSize, this.settings::setBrowserPreloadOpaquePoolSize);
+        this.opaquePoolSizeButton = this.buildPoolSizeButton(
+            "rinku.options.preload_opaque_pool_size",
+            this.settings::getBrowserPreloadOpaquePoolSize,
+            this.settings::setBrowserPreloadOpaquePoolSize);
         addFullWidthOption(rowY, this.opaquePoolSizeButton);
 
         updatePreloadControls();
@@ -162,44 +223,164 @@ public class OptionsScreen extends GuiScreen {
     private void buildDownloadsTab() {
         int rowY = 60 + OPTION_SECTION_PADDING_TOP;
 
-        addFullWidthOption(rowY, this.buildBooleanButton("rinku.options.skip_download", "rinku.options.skip_download.desc", this.settings::isSkipDownload, this.settings::setSkipDownload));
+        addFullWidthOption(
+            rowY,
+            this.buildBooleanButton(
+                "rinku.options.skip_download",
+                "rinku.options.skip_download.desc",
+                this.settings::isSkipDownload,
+                this.settings::setSkipDownload));
         rowY += OPTION_ROW_ADVANCE;
 
         this.mirrorPolicyButton = this.buildMirrorPolicyButton();
         addFullWidthOption(rowY, this.mirrorPolicyButton);
         rowY += OPTION_ROW_ADVANCE;
 
-        addTextOption(rowY, DOWNLOADS_TAB_INDEX, new TextOption<>("download-mirror", "rinku.options.download_mirror", "rinku.options.download_mirror.desc", 2048, this::parseDownloadMirror, this.settings::getDownloadMirror, this.settings::setDownloadMirror, translate("rinku.options.validation.download_mirror")));
+        addTextOption(
+            rowY,
+            DOWNLOADS_TAB_INDEX,
+            new TextOption<>(
+                "download-mirror",
+                "rinku.options.download_mirror",
+                "rinku.options.download_mirror.desc",
+                2048,
+                this::parseDownloadMirror,
+                this.settings::getDownloadMirror,
+                this.settings::setDownloadMirror,
+                translate("rinku.options.validation.download_mirror")));
         rowY += OPTION_ROW_ADVANCE * 2;
 
-        addFullWidthOption(rowY, this.buildBooleanButton("rinku.options.enforce_checksums", "rinku.options.enforce_checksums.desc", this.settings::isEnforceDownloadChecksums, this.settings::setEnforceDownloadChecksums));
+        addFullWidthOption(
+            rowY,
+            this.buildBooleanButton(
+                "rinku.options.enforce_checksums",
+                "rinku.options.enforce_checksums.desc",
+                this.settings::isEnforceDownloadChecksums,
+                this.settings::setEnforceDownloadChecksums));
         rowY += OPTION_ROW_ADVANCE;
 
-        addTextOption(rowY, DOWNLOADS_TAB_INDEX, new TextOption<>("download-connect-timeout-ms", "rinku.options.connect_timeout", "rinku.options.connect_timeout.desc", 6, value -> RinkuOptionsInput.parseInt(value, RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS, RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS), this.settings::getDownloadConnectTimeoutMs, this.settings::setDownloadConnectTimeoutMs, translate("rinku.options.validation.integer_range", RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS, RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS)));
+        addTextOption(
+            rowY,
+            DOWNLOADS_TAB_INDEX,
+            new TextOption<>(
+                "download-connect-timeout-ms",
+                "rinku.options.connect_timeout",
+                "rinku.options.connect_timeout.desc",
+                6,
+                value -> RinkuOptionsInput
+                    .parseInt(value, RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS, RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS),
+                this.settings::getDownloadConnectTimeoutMs,
+                this.settings::setDownloadConnectTimeoutMs,
+                translate(
+                    "rinku.options.validation.integer_range",
+                    RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS,
+                    RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS)));
         rowY += OPTION_ROW_ADVANCE * 2;
 
-        addTextOption(rowY, DOWNLOADS_TAB_INDEX, new TextOption<>("download-read-timeout-ms", "rinku.options.read_timeout", "rinku.options.read_timeout.desc", 6, value -> RinkuOptionsInput.parseInt(value, RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS, RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS), this.settings::getDownloadReadTimeoutMs, this.settings::setDownloadReadTimeoutMs, translate("rinku.options.validation.integer_range", RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS, RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS)));
+        addTextOption(
+            rowY,
+            DOWNLOADS_TAB_INDEX,
+            new TextOption<>(
+                "download-read-timeout-ms",
+                "rinku.options.read_timeout",
+                "rinku.options.read_timeout.desc",
+                6,
+                value -> RinkuOptionsInput
+                    .parseInt(value, RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS, RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS),
+                this.settings::getDownloadReadTimeoutMs,
+                this.settings::setDownloadReadTimeoutMs,
+                translate(
+                    "rinku.options.validation.integer_range",
+                    RinkuSettings.MIN_DOWNLOAD_TIMEOUT_MS,
+                    RinkuSettings.MAX_DOWNLOAD_TIMEOUT_MS)));
         rowY += OPTION_ROW_ADVANCE * 2;
 
-        addTextOption(rowY, DOWNLOADS_TAB_INDEX, new TextOption<>("download-max-archive-bytes", "rinku.options.max_archive_bytes", "rinku.options.max_archive_bytes.desc", 10, value -> RinkuOptionsInput.parseLong(value, RinkuSettings.MIN_DOWNLOAD_ARCHIVE_BYTES, RinkuSettings.MAX_DOWNLOAD_ARCHIVE_BYTES), this.settings::getDownloadMaxArchiveBytes, this.settings::setDownloadMaxArchiveBytes, translate("rinku.options.validation.integer_range", RinkuSettings.MIN_DOWNLOAD_ARCHIVE_BYTES, RinkuSettings.MAX_DOWNLOAD_ARCHIVE_BYTES)));
+        addTextOption(
+            rowY,
+            DOWNLOADS_TAB_INDEX,
+            new TextOption<>(
+                "download-max-archive-bytes",
+                "rinku.options.max_archive_bytes",
+                "rinku.options.max_archive_bytes.desc",
+                10,
+                value -> RinkuOptionsInput.parseLong(
+                    value,
+                    RinkuSettings.MIN_DOWNLOAD_ARCHIVE_BYTES,
+                    RinkuSettings.MAX_DOWNLOAD_ARCHIVE_BYTES),
+                this.settings::getDownloadMaxArchiveBytes,
+                this.settings::setDownloadMaxArchiveBytes,
+                translate(
+                    "rinku.options.validation.integer_range",
+                    RinkuSettings.MIN_DOWNLOAD_ARCHIVE_BYTES,
+                    RinkuSettings.MAX_DOWNLOAD_ARCHIVE_BYTES)));
         rowY += OPTION_ROW_ADVANCE * 2;
 
-        addTextOption(rowY, DOWNLOADS_TAB_INDEX, new TextOption<>("download-max-checksum-bytes", "rinku.options.max_checksum_bytes", "rinku.options.max_checksum_bytes.desc", 7, value -> RinkuOptionsInput.parseLong(value, RinkuSettings.MIN_DOWNLOAD_CHECKSUM_BYTES, RinkuSettings.MAX_DOWNLOAD_CHECKSUM_BYTES), this.settings::getDownloadMaxChecksumBytes, this.settings::setDownloadMaxChecksumBytes, translate("rinku.options.validation.integer_range", RinkuSettings.MIN_DOWNLOAD_CHECKSUM_BYTES, RinkuSettings.MAX_DOWNLOAD_CHECKSUM_BYTES)));
+        addTextOption(
+            rowY,
+            DOWNLOADS_TAB_INDEX,
+            new TextOption<>(
+                "download-max-checksum-bytes",
+                "rinku.options.max_checksum_bytes",
+                "rinku.options.max_checksum_bytes.desc",
+                7,
+                value -> RinkuOptionsInput.parseLong(
+                    value,
+                    RinkuSettings.MIN_DOWNLOAD_CHECKSUM_BYTES,
+                    RinkuSettings.MAX_DOWNLOAD_CHECKSUM_BYTES),
+                this.settings::getDownloadMaxChecksumBytes,
+                this.settings::setDownloadMaxChecksumBytes,
+                translate(
+                    "rinku.options.validation.integer_range",
+                    RinkuSettings.MIN_DOWNLOAD_CHECKSUM_BYTES,
+                    RinkuSettings.MAX_DOWNLOAD_CHECKSUM_BYTES)));
         rowY += OPTION_ROW_ADVANCE * 2;
 
-        addTextOption(rowY, DOWNLOADS_TAB_INDEX, new TextOption<>("download-max-extracted-bytes", "rinku.options.max_extracted_bytes", "rinku.options.max_extracted_bytes.desc", 11, value -> RinkuOptionsInput.parseLong(value, RinkuSettings.MIN_DOWNLOAD_EXTRACTED_BYTES, RinkuSettings.MAX_DOWNLOAD_EXTRACTED_BYTES), this.settings::getDownloadMaxExtractedBytes, this.settings::setDownloadMaxExtractedBytes, translate("rinku.options.validation.integer_range", RinkuSettings.MIN_DOWNLOAD_EXTRACTED_BYTES, RinkuSettings.MAX_DOWNLOAD_EXTRACTED_BYTES)));
+        addTextOption(
+            rowY,
+            DOWNLOADS_TAB_INDEX,
+            new TextOption<>(
+                "download-max-extracted-bytes",
+                "rinku.options.max_extracted_bytes",
+                "rinku.options.max_extracted_bytes.desc",
+                11,
+                value -> RinkuOptionsInput.parseLong(
+                    value,
+                    RinkuSettings.MIN_DOWNLOAD_EXTRACTED_BYTES,
+                    RinkuSettings.MAX_DOWNLOAD_EXTRACTED_BYTES),
+                this.settings::getDownloadMaxExtractedBytes,
+                this.settings::setDownloadMaxExtractedBytes,
+                translate(
+                    "rinku.options.validation.integer_range",
+                    RinkuSettings.MIN_DOWNLOAD_EXTRACTED_BYTES,
+                    RinkuSettings.MAX_DOWNLOAD_EXTRACTED_BYTES)));
     }
 
     private void buildAdvancedTab() {
         int rowY = 60 + OPTION_SECTION_PADDING_TOP;
 
-        addFullWidthOption(rowY, this.buildBooleanButton("rinku.options.disable_web_security", "rinku.options.disable_web_security.desc", this.settings::isDisableWebSecurity, this.settings::setDisableWebSecurity));
+        addFullWidthOption(
+            rowY,
+            this.buildBooleanButton(
+                "rinku.options.disable_web_security",
+                "rinku.options.disable_web_security.desc",
+                this.settings::isDisableWebSecurity,
+                this.settings::setDisableWebSecurity));
         rowY += OPTION_ROW_ADVANCE;
 
-        addFullWidthOption(rowY, this.buildLogSeverityButton("rinku.options.native_log_severity", this.settings::getNativeCefLogSeverity, this.settings::setNativeCefLogSeverity));
+        addFullWidthOption(
+            rowY,
+            this.buildLogSeverityButton(
+                "rinku.options.native_log_severity",
+                this.settings::getNativeCefLogSeverity,
+                this.settings::setNativeCefLogSeverity));
         rowY += OPTION_ROW_ADVANCE;
 
-        addFullWidthOption(rowY, this.buildLogSeverityButton("rinku.options.console_log_severity", this.settings::getConsoleLogForwardingMinSeverity, this.settings::setConsoleLogForwardingMinSeverity));
+        addFullWidthOption(
+            rowY,
+            this.buildLogSeverityButton(
+                "rinku.options.console_log_severity",
+                this.settings::getConsoleLogForwardingMinSeverity,
+                this.settings::setConsoleLogForwardingMinSeverity));
     }
 
     private GuiButton buildPreloadEnabledButton() {
@@ -208,7 +389,9 @@ public class OptionsScreen extends GuiScreen {
         GuiButton button = new GuiButton(id, 0, 0, getButtonWidth(), BUTTON_HEIGHT, msg);
         RunnableOptionButton rob = new RunnableOptionButton(button, () -> {
             this.settings.setBrowserPreloadEnabled(!this.settings.isBrowserPreloadEnabled());
-            button.displayString = booleanOptionMessage("rinku.options.preload_enabled", this.settings.isBrowserPreloadEnabled());
+            button.displayString = booleanOptionMessage(
+                "rinku.options.preload_enabled",
+                this.settings.isBrowserPreloadEnabled());
             updatePreloadControls();
         }, translate("rinku.options.preload_enabled.desc"));
         currentTabOptionButtons.add(rob);
@@ -221,7 +404,8 @@ public class OptionsScreen extends GuiScreen {
         int id = optionIdCounter++;
         GuiButton button = new GuiButton(id, 0, 0, getButtonWidth(), BUTTON_HEIGHT, msg);
         RunnableOptionButton rob = new RunnableOptionButton(button, () -> {
-            this.settings.setDownloadMirrorPolicy(nextValue(this.settings.getDownloadMirrorPolicy(), RinkuDownloader.MirrorPolicy.values()));
+            this.settings.setDownloadMirrorPolicy(
+                nextValue(this.settings.getDownloadMirrorPolicy(), RinkuDownloader.MirrorPolicy.values()));
             button.displayString = mirrorPolicyMessage();
         }, translate("rinku.options.download_mirror_policy.desc"));
         currentTabOptionButtons.add(rob);
@@ -229,7 +413,8 @@ public class OptionsScreen extends GuiScreen {
         return button;
     }
 
-    private GuiButton buildLogSeverityButton(String labelKey, Supplier<CefSettings.LogSeverity> getter, Consumer<CefSettings.LogSeverity> setter) {
+    private GuiButton buildLogSeverityButton(String labelKey, Supplier<CefSettings.LogSeverity> getter,
+        Consumer<CefSettings.LogSeverity> setter) {
         String msg = logSeverityMessage(labelKey, getter.get());
         int id = optionIdCounter++;
         GuiButton button = new GuiButton(id, 0, 0, getButtonWidth(), BUTTON_HEIGHT, msg);
@@ -248,7 +433,9 @@ public class OptionsScreen extends GuiScreen {
         int id = optionIdCounter++;
         GuiButton button = new GuiButton(id, 0, 0, getButtonWidth(), BUTTON_HEIGHT, msg);
         RunnableOptionButton rob = new RunnableOptionButton(button, () -> {
-            int next = getter.get() >= RinkuSettings.MAX_BROWSER_PRELOAD_POOL_SIZE ? RinkuSettings.MIN_BROWSER_PRELOAD_POOL_SIZE : getter.get() + 1;
+            int next = getter.get() >= RinkuSettings.MAX_BROWSER_PRELOAD_POOL_SIZE
+                ? RinkuSettings.MIN_BROWSER_PRELOAD_POOL_SIZE
+                : getter.get() + 1;
             setter.accept(next);
             button.displayString = integerOptionMessage(labelKey, next);
         }, translate(labelKey + ".desc"));
@@ -257,7 +444,8 @@ public class OptionsScreen extends GuiScreen {
         return button;
     }
 
-    private GuiButton buildBooleanButton(String labelKey, String descriptionKey, Supplier<Boolean> getter, Consumer<Boolean> setter) {
+    private GuiButton buildBooleanButton(String labelKey, String descriptionKey, Supplier<Boolean> getter,
+        Consumer<Boolean> setter) {
         String msg = booleanOptionMessage(labelKey, getter.get());
         int id = optionIdCounter++;
         GuiButton button = new GuiButton(id, 0, 0, getButtonWidth(), BUTTON_HEIGHT, msg);
@@ -285,21 +473,39 @@ public class OptionsScreen extends GuiScreen {
         int leftX = (this.width - rowWidth) / 2;
 
         String labelStr = translate(option.labelKey());
-        RunnableLabel rl = new RunnableLabel(leftX, rowY, labelWidth, BUTTON_HEIGHT, labelStr, translate(option.descriptionKey()));
+        RunnableLabel rl = new RunnableLabel(
+            leftX,
+            rowY,
+            labelWidth,
+            BUTTON_HEIGHT,
+            labelStr,
+            translate(option.descriptionKey()));
         currentTabLabels.add(rl);
 
-        GuiTextField editBox = new GuiTextField(this.fontRendererObj, leftX + labelWidth + EDITABLE_ROW_GAP, rowY, editWidth, BUTTON_HEIGHT);
+        GuiTextField editBox = new GuiTextField(
+            this.fontRendererObj,
+            leftX + labelWidth + EDITABLE_ROW_GAP,
+            rowY,
+            editWidth,
+            BUTTON_HEIGHT);
         String initialValue = this.pendingTextValues.getOrDefault(option.id(), "");
         editBox.setMaxStringLength(Math.max(option.maxLength(), initialValue.length()));
         editBox.setText(initialValue);
         currentTabTextFields.add(editBox);
 
-        TextOptionControl<T> control = new TextOptionControl<>(tabIndex, option, editBox, translate(option.descriptionKey()), translateOptionInvalid(option));
+        TextOptionControl<T> control = new TextOptionControl<>(
+            tabIndex,
+            option,
+            editBox,
+            translate(option.descriptionKey()),
+            translateOptionInvalid(option));
         this.textOptionControls.add(control);
     }
 
     private String parseDownloadMirror(String value) {
-        return RinkuOptionsInput.parseMirror(value, this.settings.getDownloadMirrorPolicy() != RinkuDownloader.MirrorPolicy.CONFIGURED_ONLY);
+        return RinkuOptionsInput.parseMirror(
+            value,
+            this.settings.getDownloadMirrorPolicy() != RinkuDownloader.MirrorPolicy.CONFIGURED_ONLY);
     }
 
     private void updatePreloadControls() {
@@ -346,14 +552,18 @@ public class OptionsScreen extends GuiScreen {
     }
 
     private String mirrorPolicyMessage() {
-        String valueKey = "rinku.options.download_mirror_policy." + this.settings.getDownloadMirrorPolicy().name().toLowerCase(java.util.Locale.ROOT);
+        String valueKey = "rinku.options.download_mirror_policy." + this.settings.getDownloadMirrorPolicy()
+            .name()
+            .toLowerCase(java.util.Locale.ROOT);
         String valueName = translate(valueKey);
         String value = withColor(valueName, CYCLE_VALUE_COLOR);
         return translatedFormatted("rinku.options.download_mirror_policy", value);
     }
 
     private String logSeverityMessage(String labelKey, CefSettings.LogSeverity severity) {
-        String severityName = severity.name().substring("LOGSEVERITY_".length()).toLowerCase(java.util.Locale.ROOT);
+        String severityName = severity.name()
+            .substring("LOGSEVERITY_".length())
+            .toLowerCase(java.util.Locale.ROOT);
         String valueName = translate("rinku.options.log_severity." + severityName);
         String value = withColor(valueName, CYCLE_VALUE_COLOR);
         return translatedFormatted(labelKey, value);
@@ -380,7 +590,10 @@ public class OptionsScreen extends GuiScreen {
             return c.getFormattedText();
         } catch (Exception e) {
             StringBuilder sb = new StringBuilder(key);
-            for (Object a : args) { sb.append(' ').append(String.valueOf(a)); }
+            for (Object a : args) {
+                sb.append(' ')
+                    .append(String.valueOf(a));
+            }
             return sb.toString();
         }
     }
@@ -446,7 +659,9 @@ public class OptionsScreen extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        try { super.mouseClicked(mouseX, mouseY, mouseButton); } catch (Exception ignored) {}
+        try {
+            super.mouseClicked(mouseX, mouseY, mouseButton);
+        } catch (Exception ignored) {}
         for (GuiTextField tf : currentTabTextFields) tf.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
@@ -483,7 +698,9 @@ public class OptionsScreen extends GuiScreen {
         } catch (Exception ignored) {
             for (Object o : this.buttonList) {
                 GuiButton b = (GuiButton) o;
-                try { b.drawButton(this.mc, mouseX, mouseY); } catch (Exception ignored2) {}
+                try {
+                    b.drawButton(this.mc, mouseX, mouseY);
+                } catch (Exception ignored2) {}
             }
         }
 
@@ -505,9 +722,11 @@ public class OptionsScreen extends GuiScreen {
     }
 
     private static final class RunnableOptionButton {
+
         final GuiButton button;
         final Runnable onPress;
         final String tooltip;
+
         RunnableOptionButton(GuiButton button, Runnable onPress, String tooltip) {
             this.button = button;
             this.onPress = onPress;
@@ -516,18 +735,28 @@ public class OptionsScreen extends GuiScreen {
     }
 
     private static final class RunnableLabel {
+
         final int x, y, w, h;
         final String text;
         final String tooltip;
+
         RunnableLabel(int x, int y, int w, int h, String text, String tooltip) {
-            this.x = x; this.y = y; this.w = w; this.h = h; this.text = text; this.tooltip = tooltip;
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.text = text;
+            this.tooltip = tooltip;
         }
+
         boolean isHovered(int mx, int my) {
             return mx >= x && mx < x + w && my >= y && my < y + h;
         }
+
         void draw(net.minecraft.client.gui.FontRenderer fr) {
             fr.drawStringWithShadow(truncate(fr, text, w), x, y + (h - fr.FONT_HEIGHT) / 2, 0xFFFFFF);
         }
+
         private static String truncate(net.minecraft.client.gui.FontRenderer fr, String s, int maxW) {
             if (fr.getStringWidth(s) <= maxW) return s;
             String ellipsis = "...";
@@ -543,6 +772,7 @@ public class OptionsScreen extends GuiScreen {
     }
 
     private static final class TextOption<T> {
+
         private final String id;
         private final String labelKey;
         private final String descriptionKey;
@@ -551,7 +781,9 @@ public class OptionsScreen extends GuiScreen {
         private final Supplier<T> currentValue;
         private final Consumer<T> applier;
         private final Object invalidMessage;
-        TextOption(String id, String labelKey, String descriptionKey, int maxLength, Function<String, T> parser, Supplier<T> currentValue, Consumer<T> applier, Object invalidMessage) {
+
+        TextOption(String id, String labelKey, String descriptionKey, int maxLength, Function<String, T> parser,
+            Supplier<T> currentValue, Consumer<T> applier, Object invalidMessage) {
             this.id = id;
             this.labelKey = labelKey;
             this.descriptionKey = descriptionKey;
@@ -561,16 +793,38 @@ public class OptionsScreen extends GuiScreen {
             this.applier = applier;
             this.invalidMessage = invalidMessage;
         }
-        String id() { return id; }
-        String labelKey() { return labelKey; }
-        String descriptionKey() { return descriptionKey; }
-        int maxLength() { return maxLength; }
-        Function<String, T> parser() { return parser; }
-        Supplier<T> currentValue() { return currentValue; }
-        Consumer<T> applier() { return applier; }
+
+        String id() {
+            return id;
+        }
+
+        String labelKey() {
+            return labelKey;
+        }
+
+        String descriptionKey() {
+            return descriptionKey;
+        }
+
+        int maxLength() {
+            return maxLength;
+        }
+
+        Function<String, T> parser() {
+            return parser;
+        }
+
+        Supplier<T> currentValue() {
+            return currentValue;
+        }
+
+        Consumer<T> applier() {
+            return applier;
+        }
     }
 
     private final class TextOptionControl<T> {
+
         private final int tabIndex;
         private final TextOption<T> option;
         private final GuiTextField editBox;
@@ -579,7 +833,8 @@ public class OptionsScreen extends GuiScreen {
         @Nullable
         private T parsedValue;
 
-        private TextOptionControl(int tabIndex, TextOption<T> option, GuiTextField editBox, String description, String invalidMessage) {
+        private TextOptionControl(int tabIndex, TextOption<T> option, GuiTextField editBox, String description,
+            String invalidMessage) {
             this.tabIndex = tabIndex;
             this.option = option;
             this.editBox = editBox;
@@ -590,7 +845,8 @@ public class OptionsScreen extends GuiScreen {
 
         private boolean validate() {
             try {
-                this.parsedValue = this.option.parser().apply(this.editBox.getText());
+                this.parsedValue = this.option.parser()
+                    .apply(this.editBox.getText());
                 this.editBox.setTextColor(DEFAULT_TEXT_COLOR);
                 return true;
             } catch (IllegalArgumentException exception) {
@@ -601,8 +857,12 @@ public class OptionsScreen extends GuiScreen {
         }
 
         private void applyParsedValue() {
-            if (!Objects.equals(this.parsedValue, this.option.currentValue().get())) {
-                this.option.applier().accept(this.parsedValue);
+            if (!Objects.equals(
+                this.parsedValue,
+                this.option.currentValue()
+                    .get())) {
+                this.option.applier()
+                    .accept(this.parsedValue);
             }
         }
     }

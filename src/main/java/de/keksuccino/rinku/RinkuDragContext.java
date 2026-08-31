@@ -1,27 +1,35 @@
 package de.keksuccino.rinku;
 
-import org.cef.callback.CefDragData;
-import org.cef.misc.CefCursorType;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.cef.callback.CefDragData;
+import org.cef.misc.CefCursorType;
 
 public class RinkuDragContext {
 
     private static final int NO_CURSOR_OVERRIDE = -1;
     private static final RinkuDragSessionController.Callbacks<CefDragData> NOOP_CALLBACKS = new RinkuDragSessionController.Callbacks<>() {
+
         @Override
         public void targetEnter(CefDragData resource, int x, int y, int modifiers, int allowedOperations) {}
+
         @Override
         public void targetDrop(int x, int y, int modifiers) {}
+
         @Override
         public void targetLeave() {}
+
         @Override
         public void sourceEndedAt(int x, int y, int operation) {}
+
         @Override
         public void sourceSystemDragEnded() {}
     };
 
-    private final RinkuDragSessionController<CefDragData> dragSession = new RinkuDragSessionController<>(CefDragData::dispose, NO_CURSOR_OVERRIDE);
+    private final RinkuDragSessionController<CefDragData> dragSession = new RinkuDragSessionController<>(
+        CefDragData::dispose,
+        NO_CURSOR_OVERRIDE);
     private final RinkuDragSessionController.Callbacks<CefDragData> callbacks;
     private final AtomicInteger actualCursor = new AtomicInteger(NO_CURSOR_OVERRIDE);
 
@@ -49,7 +57,8 @@ public class RinkuDragContext {
      * Instead the cursor should change based on what action would be performed when they release at the given location
      * However, the browser-set cursor also needs to be tracked, so this handles that as well
      *
-     * @param cursorType the actual cursor type (should be the result of {@link RinkuDragContext#getActualCursor()} if you're just trying to see the current cursor)
+     * @param cursorType the actual cursor type (should be the result of {@link RinkuDragContext#getActualCursor()} if
+     *                   you're just trying to see the current cursor)
      * @return the drag operation modified cursor if dragging, or the actual cursor if not
      */
     public int getVirtualCursor(int cursorType) {

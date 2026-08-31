@@ -1,5 +1,10 @@
 package de.keksuccino.rinku;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.cef.CefClient;
@@ -13,7 +18,6 @@ import org.cef.callback.CefContextMenuParams;
 import org.cef.callback.CefDownloadItem;
 import org.cef.callback.CefDownloadItemCallback;
 import org.cef.callback.CefMenuModel;
-import de.keksuccino.rinku.util.CefUtil;
 import org.cef.handler.CefAudioHandler;
 import org.cef.handler.CefContextMenuHandler;
 import org.cef.handler.CefCookieAccessFilter;
@@ -31,12 +35,10 @@ import org.cef.network.CefRequest;
 import org.cef.network.CefResponse;
 import org.cef.network.CefURLRequest;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import de.keksuccino.rinku.util.CefUtil;
 
-public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDisplayHandler, CefAudioHandler, CefDownloadHandler, CefRequestHandler {
+public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDisplayHandler, CefAudioHandler,
+    CefDownloadHandler, CefRequestHandler {
 
     private static final Logger LOGGER = LogManager.getLogger("RinkuClient");
 
@@ -83,7 +85,8 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     }
 
     @Override
-    public void onLoadError(CefBrowser browser, CefFrame frame, ErrorCode errorCode, String errorText, String failedUrl) {
+    public void onLoadError(CefBrowser browser, CefFrame frame, ErrorCode errorCode, String errorText,
+        String failedUrl) {
         for (CefLoadHandler loadHandler : loadHandlers)
             loadHandler.onLoadError(browser, frame, errorCode, errorText, failedUrl);
     }
@@ -93,16 +96,17 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     }
 
     @Override
-    public void onBeforeContextMenu(CefBrowser browser, CefFrame frame, CefContextMenuParams params, CefMenuModel model) {
+    public void onBeforeContextMenu(CefBrowser browser, CefFrame frame, CefContextMenuParams params,
+        CefMenuModel model) {
         for (CefContextMenuHandler contextMenuHandler : contextMenuHandlers)
             contextMenuHandler.onBeforeContextMenu(browser, frame, params, model);
     }
 
     @Override
-    public boolean onContextMenuCommand(CefBrowser browser, CefFrame frame, CefContextMenuParams params, int commandId, int eventFlags) {
+    public boolean onContextMenuCommand(CefBrowser browser, CefFrame frame, CefContextMenuParams params, int commandId,
+        int eventFlags) {
         for (CefContextMenuHandler contextMenuHandler : contextMenuHandlers)
-            if (contextMenuHandler.onContextMenuCommand(browser, frame, params, commandId, eventFlags))
-                return true;
+            if (contextMenuHandler.onContextMenuCommand(browser, frame, params, commandId, eventFlags)) return true;
         return false;
     }
 
@@ -133,8 +137,7 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     @Override
     public boolean onTooltip(CefBrowser browser, String text) {
         for (CefDisplayHandler displayHandler : displayHandlers)
-            if (displayHandler.onTooltip(browser, text))
-                return true;
+            if (displayHandler.onTooltip(browser, text)) return true;
         return false;
     }
 
@@ -144,10 +147,10 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     }
 
     @Override
-    public boolean onConsoleMessage(CefBrowser browser, CefSettings.LogSeverity level, String message, String source, int line) {
+    public boolean onConsoleMessage(CefBrowser browser, CefSettings.LogSeverity level, String message, String source,
+        int line) {
         for (CefDisplayHandler displayHandler : displayHandlers)
-            if (displayHandler.onConsoleMessage(browser, level, message, source, line))
-                return true;
+            if (displayHandler.onConsoleMessage(browser, level, message, source, line)) return true;
 
         if (shouldForwardConsoleMessageToMcLog(level)) {
             logConsoleMessageToMcLog(browser, level, message, source, line);
@@ -160,8 +163,7 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     @Override
     public boolean onCursorChange(CefBrowser browser, int cursorType) {
         for (CefDisplayHandler displayHandler : displayHandlers)
-            if (displayHandler.onCursorChange(browser, cursorType))
-                return true;
+            if (displayHandler.onCursorChange(browser, cursorType)) return true;
         return false;
     }
 
@@ -172,8 +174,7 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     @Override
     public boolean getAudioParameters(CefBrowser browser, CefAudioParameters params) {
         for (CefAudioHandler audioHandler : audioHandlers) {
-            if (audioHandler.getAudioParameters(browser, params))
-                return true;
+            if (audioHandler.getAudioParameters(browser, params)) return true;
         }
         return false;
     }
@@ -217,7 +218,8 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     }
 
     @Override
-    public boolean onBeforeDownloadWithDecision(CefBrowser browser, CefDownloadItem downloadItem, String suggestedName, CefBeforeDownloadCallback callback) {
+    public boolean onBeforeDownloadWithDecision(CefBrowser browser, CefDownloadItem downloadItem, String suggestedName,
+        CefBeforeDownloadCallback callback) {
         return downloadHandlerRelay.onBeforeDownloadWithDecision(browser, downloadItem, suggestedName, callback);
     }
 
@@ -229,7 +231,8 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     // ==================== CefRequestHandler implementation ====================
 
     @Override
-    public boolean onBeforeBrowse(CefBrowser browser, CefFrame frame, CefRequest request, boolean user_gesture, boolean is_redirect) {
+    public boolean onBeforeBrowse(CefBrowser browser, CefFrame frame, CefRequest request, boolean user_gesture,
+        boolean is_redirect) {
         return false;
     }
 
@@ -239,38 +242,44 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
     }
 
     @Override
-    public CefResourceRequestHandler getResourceRequestHandler(CefBrowser browser, CefFrame frame, CefRequest request, boolean isNavigation, boolean isDownload, String requestInitiator, BoolRef disableDefaultHandling) {
+    public CefResourceRequestHandler getResourceRequestHandler(CefBrowser browser, CefFrame frame, CefRequest request,
+        boolean isNavigation, boolean isDownload, String requestInitiator, BoolRef disableDefaultHandling) {
         return desktopHeadersHandler;
     }
 
     @Override
-    public boolean getAuthCredentials(CefBrowser browser, String origin_url, boolean isProxy, String host, int port, String realm, String scheme, CefAuthCallback callback) {
+    public boolean getAuthCredentials(CefBrowser browser, String origin_url, boolean isProxy, String host, int port,
+        String realm, String scheme, CefAuthCallback callback) {
         return false;
     }
 
     @Override
-    public boolean onCertificateError(CefBrowser browser, ErrorCode cert_error, String request_url, CefCallback callback) {
+    public boolean onCertificateError(CefBrowser browser, ErrorCode cert_error, String request_url,
+        CefCallback callback) {
         return false;
     }
 
     @Override
-    public void onRenderProcessTerminated(CefBrowser browser, TerminationStatus status, int error_code, String error_string) {
-        LOGGER.warn("Render process terminated for browser {}: status={} error_code={} error_string={}",
-                browser == null ? -1 : browser.getIdentifier(), status, error_code, error_string);
+    public void onRenderProcessTerminated(CefBrowser browser, TerminationStatus status, int error_code,
+        String error_string) {
+        LOGGER.warn(
+            "Render process terminated for browser {}: status={} error_code={} error_string={}",
+            browser == null ? -1 : browser.getIdentifier(),
+            status,
+            error_code,
+            error_string);
     }
 
     private static boolean shouldForwardConsoleMessageToMcLog(CefSettings.LogSeverity level) {
-        CefSettings.LogSeverity threshold = Rinku.getSettings().getConsoleLogForwardingMinSeverity();
-        CefSettings.LogSeverity effectiveThreshold = threshold == null
-                ? CefSettings.LogSeverity.LOGSEVERITY_DISABLE
-                : threshold;
+        CefSettings.LogSeverity threshold = Rinku.getSettings()
+            .getConsoleLogForwardingMinSeverity();
+        CefSettings.LogSeverity effectiveThreshold = threshold == null ? CefSettings.LogSeverity.LOGSEVERITY_DISABLE
+            : threshold;
         if (effectiveThreshold == CefSettings.LogSeverity.LOGSEVERITY_DISABLE) {
             return false;
         }
 
-        CefSettings.LogSeverity effectiveLevel = level == null
-                ? CefSettings.LogSeverity.LOGSEVERITY_DEFAULT
-                : level;
+        CefSettings.LogSeverity effectiveLevel = level == null ? CefSettings.LogSeverity.LOGSEVERITY_DEFAULT : level;
         return getSeverityRank(effectiveLevel) >= getSeverityRank(effectiveThreshold);
     }
 
@@ -284,28 +293,23 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
         };
     }
 
-    private static void logConsoleMessageToMcLog(
-            CefBrowser browser,
-            CefSettings.LogSeverity level,
-            String message,
-            String source,
-            int line
-    ) {
+    private static void logConsoleMessageToMcLog(CefBrowser browser, CefSettings.LogSeverity level, String message,
+        String source, int line) {
         int browserId = browser == null ? -1 : browser.getIdentifier();
-        String sourceValue = source == null || source.trim().isEmpty() ? "<unknown>" : source;
+        String sourceValue = source == null || source.trim()
+            .isEmpty() ? "<unknown>" : source;
         String messageValue = message == null ? "<null>" : message;
-        CefSettings.LogSeverity effectiveLevel = level == null
-                ? CefSettings.LogSeverity.LOGSEVERITY_DEFAULT
-                : level;
+        CefSettings.LogSeverity effectiveLevel = level == null ? CefSettings.LogSeverity.LOGSEVERITY_DEFAULT : level;
 
         switch (effectiveLevel) {
-            case LOGSEVERITY_VERBOSE -> LOGGER.debug("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
-            case LOGSEVERITY_DEFAULT, LOGSEVERITY_INFO ->
-                    LOGGER.info("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
-            case LOGSEVERITY_WARNING ->
-                    LOGGER.warn("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
-            case LOGSEVERITY_ERROR, LOGSEVERITY_FATAL ->
-                    LOGGER.error("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
+            case LOGSEVERITY_VERBOSE -> LOGGER
+                .debug("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
+            case LOGSEVERITY_DEFAULT, LOGSEVERITY_INFO -> LOGGER
+                .info("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
+            case LOGSEVERITY_WARNING -> LOGGER
+                .warn("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
+            case LOGSEVERITY_ERROR, LOGSEVERITY_FATAL -> LOGGER
+                .error("[CEF Console][{}] {}:{} - {}", browserId, sourceValue, line, messageValue);
             case LOGSEVERITY_DISABLE -> {
                 // Nothing to forward.
             }
@@ -314,10 +318,11 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
 
     /**
      * A CefResourceRequestHandler that enforces desktop-style request headers on every outgoing
-     * request.  This is the most reliable place in the CEF handler stack to mutate a request's
+     * request. This is the most reliable place in the CEF handler stack to mutate a request's
      * headers (the request object is explicitly documented as mutable here).
      */
     private static class DesktopHeadersResourceRequestHandler implements CefResourceRequestHandler {
+
         @Override
         public CefCookieAccessFilter getCookieAccessFilter(CefBrowser browser, CefFrame frame, CefRequest request) {
             return null;
@@ -335,21 +340,22 @@ public class RinkuClient implements CefLoadHandler, CefContextMenuHandler, CefDi
         }
 
         @Override
-        public void onResourceRedirect(CefBrowser browser, CefFrame frame, CefRequest request, CefResponse response, StringRef new_url) {
-        }
+        public void onResourceRedirect(CefBrowser browser, CefFrame frame, CefRequest request, CefResponse response,
+            StringRef new_url) {}
 
         @Override
-        public boolean onResourceResponse(CefBrowser browser, CefFrame frame, CefRequest request, CefResponse response) {
+        public boolean onResourceResponse(CefBrowser browser, CefFrame frame, CefRequest request,
+            CefResponse response) {
             return false;
         }
 
         @Override
-        public void onResourceLoadComplete(CefBrowser browser, CefFrame frame, CefRequest request, CefResponse response, CefURLRequest.Status status, long receivedContentLength) {
-        }
+        public void onResourceLoadComplete(CefBrowser browser, CefFrame frame, CefRequest request, CefResponse response,
+            CefURLRequest.Status status, long receivedContentLength) {}
 
         @Override
-        public void onProtocolExecution(CefBrowser browser, CefFrame frame, CefRequest request, BoolRef allowOsExecution) {
-        }
+        public void onProtocolExecution(CefBrowser browser, CefFrame frame, CefRequest request,
+            BoolRef allowOsExecution) {}
     }
 
     private static void enforceDesktopRequestHeaders(CefRequest request) {

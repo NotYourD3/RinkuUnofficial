@@ -1,37 +1,11 @@
 package de.keksuccino.rinku.mixins;
 
-import de.keksuccino.rinku.Rinku;
-import de.keksuccino.rinku.OSPlatform;
-import de.keksuccino.rinku.RinkuRenderCoordinator;
-import de.keksuccino.rinku.RinkuSettings;
-import de.keksuccino.rinku.binarydownload.RinkuDownloadListener;
-import de.keksuccino.rinku.binarydownload.RinkuDownloader;
-import de.keksuccino.rinku.binarydownload.RinkuDownloaderScreen;
-import de.keksuccino.rinku.platform.Services;
-import de.keksuccino.rinku.util.GameDirectoryUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.*;
-import net.minecraft.client.multiplayer.GuiConnecting;
-import net.minecraft.util.ChatComponentTranslation;
-import net.minecraft.util.IChatComponent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -44,8 +18,36 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.*;
+import net.minecraft.client.multiplayer.GuiConnecting;
+import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.IChatComponent;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import de.keksuccino.rinku.OSPlatform;
+import de.keksuccino.rinku.Rinku;
+import de.keksuccino.rinku.RinkuRenderCoordinator;
+import de.keksuccino.rinku.RinkuSettings;
+import de.keksuccino.rinku.binarydownload.RinkuDownloadListener;
+import de.keksuccino.rinku.binarydownload.RinkuDownloader;
+import de.keksuccino.rinku.binarydownload.RinkuDownloaderScreen;
+import de.keksuccino.rinku.platform.Services;
+import de.keksuccino.rinku.util.GameDirectoryUtils;
+
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft {
+
     @Unique
     private static final Logger LOGGER_RINKU = LogManager.getLogger(Rinku.MOD_ID);
     @Unique
@@ -61,8 +63,7 @@ public abstract class MixinMinecraft {
 
     @Unique
     private static boolean shouldHandleScreenChange_RINKU(@Nullable GuiScreen screen, boolean recursionValue) {
-        return !recursionValue
-            || screen instanceof GuiMainMenu
+        return !recursionValue || screen instanceof GuiMainMenu
             || screen instanceof GuiSelectWorld
             || screen instanceof GuiScreenAddServer
             || screen instanceof GuiScreenServerList
@@ -89,13 +90,17 @@ public abstract class MixinMinecraft {
             setupLibraryPath_RINKU();
         } catch (Throwable t) {
             LOGGER_RINKU.error("setupLibraryPath_RINKU threw", t);
-            failDownload_RINKU("Failed to prepare Rinku library paths", new ChatComponentTranslation("rinku.downloader.task.failed_library_paths"), t instanceof Exception ? (Exception) t : new RuntimeException(t));
+            failDownload_RINKU(
+                "Failed to prepare Rinku library paths",
+                new ChatComponentTranslation("rinku.downloader.task.failed_library_paths"),
+                t instanceof Exception ? (Exception) t : new RuntimeException(t));
             return;
         }
 
         Thread downloadThread = new Thread(MixinMinecraft::runDownloaderFlow_RINKU, "Rinku-Downloader");
         downloadThread.setDaemon(true);
-        downloadThread.setUncaughtExceptionHandler((t, e) -> LOGGER_RINKU.error("Uncaught exception on Rinku-Downloader thread", e));
+        downloadThread.setUncaughtExceptionHandler(
+            (t, e) -> LOGGER_RINKU.error("Uncaught exception on Rinku-Downloader thread", e));
         downloadThread_RINKU = downloadThread;
         LOGGER_RINKU.info("Starting Rinku-Downloader thread.");
         downloadThread.start();
@@ -122,7 +127,8 @@ public abstract class MixinMinecraft {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    Thread.currentThread()
+                        .interrupt();
                     LOGGER_RINKU.warn("Interrupted while waiting to initialize Rinku.", e);
                     return;
                 }
@@ -138,7 +144,6 @@ public abstract class MixinMinecraft {
             RECURSION_DETECTOR_RINKU.set(recursionValue);
         }
     }
-
 
     @Inject(method = "runTick", at = @At("HEAD"))
     private void before_runTick_RINKU(CallbackInfo ci) {
@@ -158,7 +163,8 @@ public abstract class MixinMinecraft {
     public void after_close_RINKU(CallbackInfo info) {
         LOGGER_RINKU.info("after_close_RINKU (shutdown TAIL) entered; attempting to kill lingering jcef_helper.");
 
-        if (!OSPlatform.getPlatform().isWindows()) {
+        if (!OSPlatform.getPlatform()
+            .isWindows()) {
             return;
         }
 
@@ -191,8 +197,10 @@ public abstract class MixinMinecraft {
         }
 
         if (terminatedProcesses.get() > 0) {
-            LOGGER_RINKU.warn("Terminated {} lingering JCEF helper process(es) under {}.",
-                    terminatedProcesses.get(), rinkuLibrariesPath);
+            LOGGER_RINKU.warn(
+                "Terminated {} lingering JCEF helper process(es) under {}.",
+                terminatedProcesses.get(),
+                rinkuLibrariesPath);
         }
 
     }
@@ -200,7 +208,8 @@ public abstract class MixinMinecraft {
     @Unique
     private static void interruptDownloader_RINKU() {
         LOGGER_RINKU.info("interruptDownloader_RINKU called.");
-        // Force-close any active HTTP connection FIRST, because Java's blocking SocketInputStream ignores Thread.interrupt()
+        // Force-close any active HTTP connection FIRST, because Java's blocking SocketInputStream ignores
+        // Thread.interrupt()
         // and the thread would otherwise hang forever in read(buffer) preventing a clean JVM shutdown.
         RinkuDownloader.cancelAnyActiveDownload_RINKU();
         Thread t = downloadThread_RINKU;
@@ -210,10 +219,12 @@ public abstract class MixinMinecraft {
             try {
                 t.join(3000);
             } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
+                Thread.currentThread()
+                    .interrupt();
             }
             if (t.isAlive()) {
-                LOGGER_RINKU.warn("Rinku-Downloader thread is still alive 3s after interrupt; JVM exit may be delayed.");
+                LOGGER_RINKU
+                    .warn("Rinku-Downloader thread is still alive 3s after interrupt; JVM exit may be delayed.");
             }
         } else {
             LOGGER_RINKU.info("No active Rinku-Downloader thread to interrupt.");
@@ -222,9 +233,14 @@ public abstract class MixinMinecraft {
 
     @Unique
     private static void setupLibraryPath_RINKU() throws IOException {
-        Path rinkuLibrariesDirectory = GameDirectoryUtils.getGameDirectory().toPath().resolve("rinku-libraries");
+        Path rinkuLibrariesDirectory = GameDirectoryUtils.getGameDirectory()
+            .toPath()
+            .resolve("rinku-libraries");
         Files.createDirectories(rinkuLibrariesDirectory);
-        System.setProperty("rinku.libraries.path", rinkuLibrariesDirectory.toRealPath().toString());
+        System.setProperty(
+            "rinku.libraries.path",
+            rinkuLibrariesDirectory.toRealPath()
+                .toString());
     }
 
     @Unique
@@ -237,15 +253,21 @@ public abstract class MixinMinecraft {
 
             LOGGER_RINKU.info("Step 2: Loading Rinku settings.");
             RinkuSettings settings = Rinku.getSettings();
-            LOGGER_RINKU.info("Settings loaded; downloadMirror='{}'; skipDownload={}", settings.getDownloadMirror(), settings.isSkipDownload());
+            LOGGER_RINKU.info(
+                "Settings loaded; downloadMirror='{}'; skipDownload={}",
+                settings.getDownloadMirror(),
+                settings.isSkipDownload());
 
             boolean isDev = Services.PLATFORM.isDevelopmentEnvironment();
             LOGGER_RINKU.info("isDevelopmentEnvironment={}", isDev);
             if (isDev) {
-                LOGGER_RINKU.info("Development environment detected; resolving JCEF via jcef.path system property or classpath.");
+                LOGGER_RINKU.info(
+                    "Development environment detected; resolving JCEF via jcef.path system property or classpath.");
                 String jcefPath = System.getProperty("jcef.path");
                 if (jcefPath == null || jcefPath.isEmpty()) {
-                    Path rinkuLibrariesDirectory = GameDirectoryUtils.getGameDirectory().toPath().resolve("rinku-libraries");
+                    Path rinkuLibrariesDirectory = GameDirectoryUtils.getGameDirectory()
+                        .toPath()
+                        .resolve("rinku-libraries");
                     Path installDir = rinkuLibrariesDirectory.resolve("java-cef-" + javaCefCommit);
                     LOGGER_RINKU.info("Checking existing JCEF directory: {}", installDir);
                     if (Files.isDirectory(installDir)) {
@@ -257,10 +279,12 @@ public abstract class MixinMinecraft {
                         RinkuDownloadListener.INSTANCE.setDone(true);
                         return;
                     }
-                    LOGGER_RINKU.info("No existing JCEF installation found in dev environment; proceeding with a normal download.");
+                    LOGGER_RINKU.info(
+                        "No existing JCEF installation found in dev environment; proceeding with a normal download.");
                 } else {
                     LOGGER_RINKU.info("Using jcef.path from system property: " + jcefPath);
-                    Path configuredDir = Paths.get(jcefPath).toRealPath();
+                    Path configuredDir = Paths.get(jcefPath)
+                        .toRealPath();
                     loadJarsOntoClasspath_RINKU(configuredDir);
                     configureNativeLibraryPath_RINKU(configuredDir);
                     RinkuDownloadListener.INSTANCE.setDone(true);
@@ -271,7 +295,10 @@ public abstract class MixinMinecraft {
             LOGGER_RINKU.info("Step 3: Resolving platform and creating downloader.");
             OSPlatform platform = OSPlatform.getPlatform();
             LOGGER_RINKU.info("Resolved OS platform: {}", platform.getNormalizedName());
-            RinkuDownloader downloader = new RinkuDownloader(settings.getDownloadMirror(), platform, settings.createDownloadPolicy());
+            RinkuDownloader downloader = new RinkuDownloader(
+                settings.getDownloadMirror(),
+                platform,
+                settings.createDownloadPolicy());
             LOGGER_RINKU.info("RinkuDownloader constructed; host={}", downloader.getHost());
 
             // In dev environment only skip if explicitly requested in settings OR jcef.path was already supplied above.
@@ -279,31 +306,48 @@ public abstract class MixinMinecraft {
             boolean skip = settings.isSkipDownload();
             LOGGER_RINKU.info("Step 4: Calling downloader.installOrUpdate(skip={})", skip);
             RinkuDownloader.InstallationResult installation = downloader.installOrUpdate(skip);
-            LOGGER_RINKU.info("installOrUpdate returned OK; installedTo={}; downloaded={}", installation.installationDirectory(), installation.downloaded());
-            Path installDirReal = installation.installationDirectory().toRealPath();
+            LOGGER_RINKU.info(
+                "installOrUpdate returned OK; installedTo={}; downloaded={}",
+                installation.installationDirectory(),
+                installation.downloaded());
+            Path installDirReal = installation.installationDirectory()
+                .toRealPath();
             System.setProperty("jcef.path", installDirReal.toString());
             loadJarsOntoClasspath_RINKU(installDirReal);
             configureNativeLibraryPath_RINKU(installDirReal);
             RinkuDownloadListener.INSTANCE.setDone(true);
             LOGGER_RINKU.info("runDownloaderFlow_RINKU completed successfully.");
         } catch (IOException e) {
-            if (Thread.currentThread().isInterrupted()) {
+            if (Thread.currentThread()
+                .isInterrupted()) {
                 LOGGER_RINKU.info("Rinku downloader was interrupted by game shutdown.");
                 return;
             }
             LOGGER_RINKU.error("runDownloaderFlow_RINKU: IOException", e);
-            failDownload_RINKU("Failed to initialize JCEF downloader", new ChatComponentTranslation("rinku.downloader.task.failed_initialization"), e);
+            failDownload_RINKU(
+                "Failed to initialize JCEF downloader",
+                new ChatComponentTranslation("rinku.downloader.task.failed_initialization"),
+                e);
         } catch (RuntimeException e) {
-            if (Thread.currentThread().isInterrupted()) {
+            if (Thread.currentThread()
+                .isInterrupted()) {
                 LOGGER_RINKU.info("Rinku downloader was interrupted by game shutdown.");
                 return;
             }
             LOGGER_RINKU.error("runDownloaderFlow_RINKU: RuntimeException", e);
-            failDownload_RINKU("JCEF downloader failed due to an invalid configuration", new ChatComponentTranslation("rinku.downloader.task.failed_configuration"), e);
+            failDownload_RINKU(
+                "JCEF downloader failed due to an invalid configuration",
+                new ChatComponentTranslation("rinku.downloader.task.failed_configuration"),
+                e);
         } catch (Throwable t) {
-            LOGGER_RINKU.error("runDownloaderFlow_RINKU: FATAL uncaught throwable (will mark failed so GUI does not hang forever)", t);
+            LOGGER_RINKU.error(
+                "runDownloaderFlow_RINKU: FATAL uncaught throwable (will mark failed so GUI does not hang forever)",
+                t);
             if (!RinkuDownloadListener.INSTANCE.isDone() && !RinkuDownloadListener.INSTANCE.isFailed()) {
-                failDownload_RINKU("Downloader crashed with fatal error", new ChatComponentTranslation("rinku.downloader.task.failed_initialization"), t instanceof Exception ? (Exception) t : new RuntimeException(t));
+                failDownload_RINKU(
+                    "Downloader crashed with fatal error",
+                    new ChatComponentTranslation("rinku.downloader.task.failed_initialization"),
+                    t instanceof Exception ? (Exception) t : new RuntimeException(t));
             }
         }
     }
@@ -323,19 +367,24 @@ public abstract class MixinMinecraft {
     private static void loadJarsOntoClasspath_RINKU(Path installDir) throws IOException {
         List<Path> jars;
         try (Stream<Path> stream = Files.list(installDir)) {
-            jars = stream
-                    .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
-                    .filter(Files::isRegularFile)
-                    .sorted((a, b) -> {
-                        String an = a.getFileName().toString();
-                        String bn = b.getFileName().toString();
-                        boolean aJcef = an.equalsIgnoreCase("jcef.jar");
-                        boolean bJcef = bn.equalsIgnoreCase("jcef.jar");
-                        if (aJcef && !bJcef) return -1;
-                        if (bJcef && !aJcef) return 1;
-                        return an.compareTo(bn);
-                    })
-                    .collect(java.util.stream.Collectors.toList());
+            jars = stream.filter(
+                p -> p.getFileName()
+                    .toString()
+                    .toLowerCase(Locale.ROOT)
+                    .endsWith(".jar"))
+                .filter(Files::isRegularFile)
+                .sorted((a, b) -> {
+                    String an = a.getFileName()
+                        .toString();
+                    String bn = b.getFileName()
+                        .toString();
+                    boolean aJcef = an.equalsIgnoreCase("jcef.jar");
+                    boolean bJcef = bn.equalsIgnoreCase("jcef.jar");
+                    if (aJcef && !bJcef) return -1;
+                    if (bJcef && !aJcef) return 1;
+                    return an.compareTo(bn);
+                })
+                .collect(java.util.stream.Collectors.toList());
         }
 
         ClassLoader appClassLoader = MixinMinecraft.class.getClassLoader();
@@ -352,11 +401,14 @@ public abstract class MixinMinecraft {
         }
 
         if (addUrlMethod == null) {
-            throw new IOException("Could not locate addURL(URL) method on class loader: " + appClassLoader.getClass().getName());
+            throw new IOException(
+                "Could not locate addURL(URL) method on class loader: " + appClassLoader.getClass()
+                    .getName());
         }
 
         for (Path jar : jars) {
-            URL jarUrl = jar.toUri().toURL();
+            URL jarUrl = jar.toUri()
+                .toURL();
             try {
                 addUrlMethod.invoke(appClassLoader, jarUrl);
                 LOGGER_RINKU.info("Added JCEF JAR to classpath: {}", jar);
@@ -368,7 +420,8 @@ public abstract class MixinMinecraft {
 
     @Unique
     private static void configureNativeLibraryPath_RINKU(Path installDir) throws IOException {
-        String installDirStr = installDir.toAbsolutePath().toString();
+        String installDirStr = installDir.toAbsolutePath()
+            .toString();
 
         String currentLibraryPath = System.getProperty("java.library.path", "");
         if (!currentLibraryPath.isEmpty()) {
@@ -402,21 +455,24 @@ public abstract class MixinMinecraft {
                 System.arraycopy(current, 0, updated, 1, current.length);
                 userPathsField.set(null, updated);
             } else {
-                userPathsField.set(null, new String[]{installDirStr});
+                userPathsField.set(null, new String[] { installDirStr });
             }
             LOGGER_RINKU.info("Injected JCEF native library directory into ClassLoader.usr_paths: {}", installDirStr);
         } catch (NoSuchFieldException nsfe) {
-            LOGGER_RINKU.debug("JDK ClassLoader.usr_paths field unavailable; relying on java.library.path system property only.", nsfe);
+            LOGGER_RINKU.debug(
+                "JDK ClassLoader.usr_paths field unavailable; relying on java.library.path system property only.",
+                nsfe);
         } catch (IllegalAccessException iae) {
-            LOGGER_RINKU.warn("Could not inject into ClassLoader.usr_paths; relying on java.library.path system property only.", iae);
+            LOGGER_RINKU.warn(
+                "Could not inject into ClassLoader.usr_paths; relying on java.library.path system property only.",
+                iae);
         }
 
         try {
             Field sysPathsField = ClassLoader.class.getDeclaredField("sys_paths");
             sysPathsField.setAccessible(true);
             sysPathsField.set(null, null);
-        } catch (NoSuchFieldException | IllegalAccessException ignored) {
-        }
+        } catch (NoSuchFieldException | IllegalAccessException ignored) {}
     }
 
     @Unique
@@ -434,13 +490,14 @@ public abstract class MixinMinecraft {
         }
 
         return isDescendantOfCurrentProcess_RINKU(process)
-                && commandLineContainsLibrariesPath_RINKU(process, rinkuLibrariesPath);
+            && commandLineContainsLibrariesPath_RINKU(process, rinkuLibrariesPath);
     }
 
     @Unique
     private static boolean terminateWindowsProcess_RINKU(long pid) {
         try {
-            Process p = Runtime.getRuntime().exec(new String[]{"taskkill.exe", "/F", "/PID", String.valueOf(pid)});
+            Process p = Runtime.getRuntime()
+                .exec(new String[] { "taskkill.exe", "/F", "/PID", String.valueOf(pid) });
             p.waitFor();
             return p.exitValue() == 0;
         } catch (Exception e) {
@@ -455,7 +512,8 @@ public abstract class MixinMinecraft {
             return true;
         }
         if (process.commandLine != null) {
-            return process.commandLine.toLowerCase(Locale.ROOT).contains(JCEF_HELPER_EXECUTABLE_WINDOWS_RINKU);
+            return process.commandLine.toLowerCase(Locale.ROOT)
+                .contains(JCEF_HELPER_EXECUTABLE_WINDOWS_RINKU);
         }
         return false;
     }
@@ -475,7 +533,8 @@ public abstract class MixinMinecraft {
         }
 
         try {
-            Path commandPath = Paths.get(command).normalize();
+            Path commandPath = Paths.get(command)
+                .normalize();
             if (!commandPath.isAbsolute()) {
                 return false;
             }
@@ -488,8 +547,10 @@ public abstract class MixinMinecraft {
     @Unique
     private static boolean commandLineContainsLibrariesPath_RINKU(WindowsProcessInfo process, Path rinkuLibrariesPath) {
         if (process.commandLine == null) return false;
-        String librariesPath = rinkuLibrariesPath.toString().toLowerCase(Locale.ROOT);
-        return process.commandLine.toLowerCase(Locale.ROOT).contains(librariesPath);
+        String librariesPath = rinkuLibrariesPath.toString()
+            .toLowerCase(Locale.ROOT);
+        return process.commandLine.toLowerCase(Locale.ROOT)
+            .contains(librariesPath);
     }
 
     @Unique
@@ -521,8 +582,7 @@ public abstract class MixinMinecraft {
                     return info.parentPid;
                 }
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return null;
     }
 
@@ -534,10 +594,14 @@ public abstract class MixinMinecraft {
         }
 
         try {
-            return Paths.get(configuredPath).toRealPath().normalize();
+            return Paths.get(configuredPath)
+                .toRealPath()
+                .normalize();
         } catch (IOException | InvalidPathException e) {
             try {
-                return Paths.get(configuredPath).toAbsolutePath().normalize();
+                return Paths.get(configuredPath)
+                    .toAbsolutePath()
+                    .normalize();
             } catch (InvalidPathException ignored) {
                 return null;
             }
@@ -547,15 +611,15 @@ public abstract class MixinMinecraft {
     @Unique
     private static long getCurrentPid_RINKU() {
         try {
-            String name = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+            String name = java.lang.management.ManagementFactory.getRuntimeMXBean()
+                .getName();
             if (name != null) {
                 int at = name.indexOf('@');
                 if (at > 0) {
                     return Long.parseLong(name.substring(0, at));
                 }
             }
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
         return -1L;
     }
 
@@ -563,11 +627,15 @@ public abstract class MixinMinecraft {
     private static List<WindowsProcessInfo> enumerateWindowsProcesses_RINKU() throws IOException {
         List<WindowsProcessInfo> result = new ArrayList<>();
         ProcessBuilder pb = new ProcessBuilder(
-                "wmic", "process", "get", "ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine",
-                "/format:csv");
+            "wmic",
+            "process",
+            "get",
+            "ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine",
+            "/format:csv");
         pb.redirectErrorStream(true);
         Process p = pb.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader = new BufferedReader(
+            new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             boolean headerSkipped = false;
             while ((line = reader.readLine()) != null) {
@@ -588,14 +656,14 @@ public abstract class MixinMinecraft {
                     info.parentPid = parts[4].isEmpty() ? 0L : Long.parseLong(parts[4]);
                     info.pid = parts[5].isEmpty() ? 0L : Long.parseLong(parts[5]);
                     result.add(info);
-                } catch (NumberFormatException ignored) {
-                }
+                } catch (NumberFormatException ignored) {}
             }
         }
         try {
             p.waitFor();
         } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
         }
         return result;
     }
@@ -627,6 +695,7 @@ public abstract class MixinMinecraft {
 
     @Unique
     private static final class WindowsProcessInfo {
+
         String node;
         String commandLine;
         String executablePath;

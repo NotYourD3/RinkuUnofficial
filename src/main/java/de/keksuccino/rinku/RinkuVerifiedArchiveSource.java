@@ -22,8 +22,10 @@ import java.util.regex.Pattern;
  * same-inode mutation cannot pass with a restored pathname.
  */
 public final class RinkuVerifiedArchiveSource implements AutoCloseable {
+
     @FunctionalInterface
     public interface InputConsumer {
+
         void accept(InputStream input) throws IOException;
     }
 
@@ -43,7 +45,9 @@ public final class RinkuVerifiedArchiveSource implements AutoCloseable {
     }
 
     public static RinkuVerifiedArchiveSource open(Path archive, long maxBytes) throws IOException {
-        Path normalizedArchive = Objects.requireNonNull(archive, "JCEF archive must not be null").toAbsolutePath().normalize();
+        Path normalizedArchive = Objects.requireNonNull(archive, "JCEF archive must not be null")
+            .toAbsolutePath()
+            .normalize();
         if (maxBytes <= 0L) {
             throw new IllegalArgumentException("Maximum JCEF archive size must be positive");
         }
@@ -97,6 +101,7 @@ public final class RinkuVerifiedArchiveSource implements AutoCloseable {
             CountingInputStream boundedInput = new CountingInputStream(Channels.newInputStream(channel), capturedSize);
             DigestInputStream digestInput = new DigestInputStream(boundedInput, digest);
             InputStream closeShield = new FilterInputStream(digestInput) {
+
                 @Override
                 public void close() {
                     // Parsers must be free to close their stream without closing the identity-stable
@@ -148,7 +153,8 @@ public final class RinkuVerifiedArchiveSource implements AutoCloseable {
             throw new IllegalArgumentException("JCEF archive digest is missing");
         }
         String normalized = digest.toLowerCase(Locale.ROOT);
-        if (!SHA256_PATTERN.matcher(normalized).matches()) {
+        if (!SHA256_PATTERN.matcher(normalized)
+            .matches()) {
             throw new IllegalArgumentException("Invalid JCEF archive digest");
         }
         return normalized;
@@ -156,8 +162,7 @@ public final class RinkuVerifiedArchiveSource implements AutoCloseable {
 
     private static void drain(InputStream input) throws IOException {
         byte[] buffer = new byte[DRAIN_BUFFER_SIZE_BYTES];
-        while (input.read(buffer) != -1) {
-        }
+        while (input.read(buffer) != -1) {}
     }
 
     private void requireOpen() {
@@ -179,6 +184,7 @@ public final class RinkuVerifiedArchiveSource implements AutoCloseable {
     }
 
     private static final class CountingInputStream extends FilterInputStream {
+
         private final long expectedSize;
         private long count;
 

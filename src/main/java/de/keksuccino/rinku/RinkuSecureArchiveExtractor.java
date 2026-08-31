@@ -1,10 +1,5 @@
 package de.keksuccino.rinku;
 
-import de.keksuccino.rinku.binarydownload.RinkuDownloader;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -19,8 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -32,8 +25,15 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+
+import de.keksuccino.rinku.binarydownload.RinkuDownloader;
+
 /** Extracts a JCEF tarball into a new staging tree without following or replacing paths. */
 public final class RinkuSecureArchiveExtractor {
+
     private static final int BUFFER_SIZE_BYTES = 16 * 1024;
     private static final int MAX_ARCHIVE_ENTRIES = 200_000;
     static final int MAX_EXTRACTED_FILESYSTEM_ENTRIES = 8_000;
@@ -47,39 +47,65 @@ public final class RinkuSecureArchiveExtractor {
     private static final int MAX_HEADER_RECORDS_PER_ENTRY = 2048;
     private static final int MAX_RAW_ARCHIVE_HEADERS = MAX_ARCHIVE_ENTRIES * 4;
     private static final byte[] GNU_SPARSE_PAX_KEY = "GNU.sparse".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
-    private static final Set<PosixFilePermission> POSIX_DIRECTORY_PERMISSIONS = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE);
+    private static final Set<PosixFilePermission> POSIX_DIRECTORY_PERMISSIONS = EnumSet.of(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE,
+        PosixFilePermission.GROUP_READ,
+        PosixFilePermission.GROUP_EXECUTE,
+        PosixFilePermission.OTHERS_READ,
+        PosixFilePermission.OTHERS_EXECUTE);
     private static final Set<PosixFilePermission> POSIX_EXECUTABLE_PERMISSIONS = POSIX_DIRECTORY_PERMISSIONS;
-    private static final Set<PosixFilePermission> POSIX_REGULAR_FILE_PERMISSIONS = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ);
+    private static final Set<PosixFilePermission> POSIX_REGULAR_FILE_PERMISSIONS = EnumSet.of(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.GROUP_READ,
+        PosixFilePermission.OTHERS_READ);
 
-    private RinkuSecureArchiveExtractor() {
-    }
+    private RinkuSecureArchiveExtractor() {}
 
-    static void extract(File tarGzFile, File outputDirectory, OSPlatform platform, RinkuDownloader.DownloadPolicy policy, Consumer<Float> progress) throws IOException {
-        try (RinkuVerifiedArchiveSource archive = RinkuVerifiedArchiveSource.open(tarGzFile.toPath(), policy.maxArchiveBytes())) {
+    static void extract(File tarGzFile, File outputDirectory, OSPlatform platform,
+        RinkuDownloader.DownloadPolicy policy, Consumer<Float> progress) throws IOException {
+        try (RinkuVerifiedArchiveSource archive = RinkuVerifiedArchiveSource
+            .open(tarGzFile.toPath(), policy.maxArchiveBytes())) {
             String archiveDigest = archive.calculateDigest();
             extract(archive, archiveDigest, outputDirectory, platform, policy, progress);
         }
     }
 
-    public static void extract(RinkuVerifiedArchiveSource archive, String expectedDigest, File outputDirectory, OSPlatform platform, RinkuDownloader.DownloadPolicy policy, Consumer<Float> progress) throws IOException {
-        Path outputRoot = outputDirectory.toPath().toAbsolutePath().normalize();
+    public static void extract(RinkuVerifiedArchiveSource archive, String expectedDigest, File outputDirectory,
+        OSPlatform platform, RinkuDownloader.DownloadPolicy policy, Consumer<Float> progress) throws IOException {
+        Path outputRoot = outputDirectory.toPath()
+            .toAbsolutePath()
+            .normalize();
         if (!Files.isDirectory(outputRoot, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("Unsafe JCEF extraction directory " + outputRoot);
         }
         try (Stream<Path> existingEntries = Files.list(outputRoot)) {
-            if (existingEntries.findAny().isPresent()) {
+            if (existingEntries.findAny()
+                .isPresent()) {
                 throw new IOException("JCEF extraction directory was not empty");
             }
         }
         Path realOutputRoot = outputRoot.toRealPath();
-        boolean normalizePosixModes = !platform.isWindows() && Files.getFileStore(realOutputRoot).supportsFileAttributeView(PosixFileAttributeView.class);
+        boolean normalizePosixModes = !platform.isWindows() && Files.getFileStore(realOutputRoot)
+            .supportsFileAttributeView(PosixFileAttributeView.class);
 
         ArchiveScan[] scannedArchive = new ArchiveScan[1];
         archive.verifiedPass(expectedDigest, input -> scannedArchive[0] = scanArchive(input, platform, policy));
         ArchiveScan archiveScan = scannedArchive[0];
         long expectedExtractedSize = Math.max(1L, archiveScan.totalSize());
         ArchiveScan[] extractedArchive = new ArchiveScan[1];
-        archive.verifiedPass(expectedDigest, input -> extractedArchive[0] = extractArchive(input, realOutputRoot, platform, policy, progress, normalizePosixModes, expectedExtractedSize));
+        archive.verifiedPass(
+            expectedDigest,
+            input -> extractedArchive[0] = extractArchive(
+                input,
+                realOutputRoot,
+                platform,
+                policy,
+                progress,
+                normalizePosixModes,
+                expectedExtractedSize));
         if (!archiveScan.equals(extractedArchive[0])) {
             throw new IOException("JCEF archive changed while it was being extracted");
         }
@@ -87,7 +113,9 @@ public final class RinkuSecureArchiveExtractor {
         progress.accept(1.0f);
     }
 
-    private static ArchiveScan extractArchive(InputStream archiveInput, Path realOutputRoot, OSPlatform platform, RinkuDownloader.DownloadPolicy policy, Consumer<Float> progress, boolean normalizePosixModes, long expectedExtractedSize) throws IOException {
+    private static ArchiveScan extractArchive(InputStream archiveInput, Path realOutputRoot, OSPlatform platform,
+        RinkuDownloader.DownloadPolicy policy, Consumer<Float> progress, boolean normalizePosixModes,
+        long expectedExtractedSize) throws IOException {
         long totalBytesRead = 0L;
         int entryCount = 0;
         byte[] buffer = new byte[BUFFER_SIZE_BYTES];
@@ -110,8 +138,14 @@ public final class RinkuSecureArchiveExtractor {
                 }
 
                 long entryBytesRead = 0L;
-                try (FileChannel outputChannel = FileChannel.open(outputPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
-                    BufferedOutputStream outputStream = new BufferedOutputStream(Channels.newOutputStream(outputChannel), BUFFER_SIZE_BYTES);
+                try (FileChannel outputChannel = FileChannel.open(
+                    outputPath,
+                    StandardOpenOption.CREATE_NEW,
+                    StandardOpenOption.WRITE,
+                    LinkOption.NOFOLLOW_LINKS)) {
+                    BufferedOutputStream outputStream = new BufferedOutputStream(
+                        Channels.newOutputStream(outputChannel),
+                        BUFFER_SIZE_BYTES);
                     int bytesRead;
                     while ((bytesRead = tarInput.read(buffer)) != -1) {
                         outputStream.write(buffer, 0, bytesRead);
@@ -124,11 +158,16 @@ public final class RinkuSecureArchiveExtractor {
                     }
                     outputStream.flush();
                     if (normalizePosixModes) {
-                        Files.setPosixFilePermissions(outputPath, (entry.getMode() & 0111) != 0 ? POSIX_EXECUTABLE_PERMISSIONS : POSIX_REGULAR_FILE_PERMISSIONS);
+                        Files.setPosixFilePermissions(
+                            outputPath,
+                            (entry.getMode() & 0111) != 0 ? POSIX_EXECUTABLE_PERMISSIONS
+                                : POSIX_REGULAR_FILE_PERMISSIONS);
                     }
                     outputChannel.force(true);
                 } catch (FileAlreadyExistsException collision) {
-                    throw new IOException("Archive attempted to replace an existing path: " + entry.getName(), collision);
+                    throw new IOException(
+                        "Archive attempted to replace an existing path: " + entry.getName(),
+                        collision);
                 }
                 if (entryBytesRead != entry.getSize()) {
                     throw new IOException("Archive entry size did not match its header: " + entry.getName());
@@ -138,7 +177,8 @@ public final class RinkuSecureArchiveExtractor {
         return new ArchiveScan(totalBytesRead, entryCount);
     }
 
-    private static ArchiveScan scanArchive(InputStream archiveInput, OSPlatform platform, RinkuDownloader.DownloadPolicy policy) throws IOException {
+    private static ArchiveScan scanArchive(InputStream archiveInput, OSPlatform platform,
+        RinkuDownloader.DownloadPolicy policy) throws IOException {
         long totalSize = 0L;
         int entryCount = 0;
         byte[] buffer = new byte[BUFFER_SIZE_BYTES];
@@ -177,11 +217,13 @@ public final class RinkuSecureArchiveExtractor {
     }
 
     private static TarArchiveInputStream openTarArchive(InputStream archiveInput) throws IOException {
-        InputStream decompressed = new GzipCompressorInputStream(new BufferedInputStream(archiveInput, BUFFER_SIZE_BYTES));
+        InputStream decompressed = new GzipCompressorInputStream(
+            new BufferedInputStream(archiveInput, BUFFER_SIZE_BYTES));
         return new HardenedTarArchiveInputStream(decompressed);
     }
 
-    private static void validateArchiveEntry(TarArchiveInputStream tarInput, TarArchiveEntry entry, int entryCount, ArchivePathTracker pathTracker) throws IOException {
+    private static void validateArchiveEntry(TarArchiveInputStream tarInput, TarArchiveEntry entry, int entryCount,
+        ArchivePathTracker pathTracker) throws IOException {
         if (entryCount > MAX_ARCHIVE_ENTRIES) {
             throw new IOException("Archive contains too many entries");
         }
@@ -204,15 +246,18 @@ public final class RinkuSecureArchiveExtractor {
 
     private static Path resolveOutputPath(Path outputRoot, String entryName) throws IOException {
         String normalizedEntryName = entryName.replace('\\', '/');
-        Path resolved = outputRoot.resolve(normalizedEntryName).normalize();
+        Path resolved = outputRoot.resolve(normalizedEntryName)
+            .normalize();
         if (!resolved.startsWith(outputRoot)) {
             throw new IOException("Archive entry escaped target directory: " + entryName);
         }
         return resolved;
     }
 
-    private static void createSafeDirectoryTree(Path root, Path directory, boolean normalizePosixModes) throws IOException {
-        Path normalizedDirectory = directory.toAbsolutePath().normalize();
+    private static void createSafeDirectoryTree(Path root, Path directory, boolean normalizePosixModes)
+        throws IOException {
+        Path normalizedDirectory = directory.toAbsolutePath()
+            .normalize();
         if (!normalizedDirectory.startsWith(root)) {
             throw new IOException("Archive directory escaped its extraction root: " + directory);
         }
@@ -246,16 +291,14 @@ public final class RinkuSecureArchiveExtractor {
         try {
             paths = Files.walk(root);
             List<Path> directories = paths.filter(path -> Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS))
-                    .sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList());
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
             for (Path directory : directories) {
                 try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
                     channel.force(true);
-                } catch (IOException | UnsupportedOperationException ignored) {
-                }
+                } catch (IOException | UnsupportedOperationException ignored) {}
             }
-        } catch (IOException ignored) {
-        } finally {
+        } catch (IOException ignored) {} finally {
             if (paths != null) {
                 paths.close();
             }
@@ -263,6 +306,7 @@ public final class RinkuSecureArchiveExtractor {
     }
 
     private static final class ArchiveScan {
+
         private final long totalSize;
         private final int entryCount;
 
@@ -299,6 +343,7 @@ public final class RinkuSecureArchiveExtractor {
      * unbounded buffers or recurse through an attacker-controlled header chain.
      */
     private static final class HardenedTarArchiveInputStream extends TarArchiveInputStream {
+
         private TarArchiveEntry validatedExtensionEntry;
         private int entryResolutionDepth;
         private int headerRecordsDuringResolution;
@@ -351,8 +396,10 @@ public final class RinkuSecureArchiveExtractor {
         @Override
         public int read(byte[] buffer, int offset, int length) throws IOException {
             TarArchiveEntry currentEntry = getCurrentEntry();
-            boolean paxExtension = currentEntry != null && (currentEntry.isPaxHeader() || currentEntry.isGlobalPaxHeader());
-            boolean extension = paxExtension || currentEntry != null && (currentEntry.isGNULongNameEntry() || currentEntry.isGNULongLinkEntry());
+            boolean paxExtension = currentEntry != null
+                && (currentEntry.isPaxHeader() || currentEntry.isGlobalPaxHeader());
+            boolean extension = paxExtension
+                || currentEntry != null && (currentEntry.isGNULongNameEntry() || currentEntry.isGNULongLinkEntry());
             if (extension) {
                 validateExtensionEntry(currentEntry);
             }
@@ -406,6 +453,7 @@ public final class RinkuSecureArchiveExtractor {
     }
 
     private static final class ArchivePathTracker {
+
         private final String expectedRoot;
         private final Set<String> paths = new HashSet<>();
         private final Set<String> foldedPaths = new HashSet<>();
@@ -418,7 +466,8 @@ public final class RinkuSecureArchiveExtractor {
         }
 
         private void add(String entryName, boolean directory) throws IOException {
-            if (entryName == null || entryName.trim().isEmpty() || entryName.length() > MAX_ARCHIVE_PATH_CHARACTERS || entryName.indexOf('\0') >= 0) {
+            if (entryName == null || entryName.trim()
+                .isEmpty() || entryName.length() > MAX_ARCHIVE_PATH_CHARACTERS || entryName.indexOf('\0') >= 0) {
                 throw new IOException("Archive entry has an invalid name");
             }
             try {
@@ -437,11 +486,14 @@ public final class RinkuSecureArchiveExtractor {
                 normalizedSeparators = normalizedSeparators.substring(0, normalizedSeparators.length() - 1);
             }
             String[] components = normalizedSeparators.split("/", -1);
-            if (components.length == 0 || components.length > MAX_ARCHIVE_PATH_COMPONENTS || !expectedRoot.equals(components[0])) {
+            if (components.length == 0 || components.length > MAX_ARCHIVE_PATH_COMPONENTS
+                || !expectedRoot.equals(components[0])) {
                 throw new IOException("Archive entry was outside the expected " + expectedRoot + " root: " + entryName);
             }
             for (String component : components) {
-                if (component.isEmpty() || component.length() > MAX_ARCHIVE_COMPONENT_CHARACTERS || ".".equals(component) || "..".equals(component)) {
+                if (component.isEmpty() || component.length() > MAX_ARCHIVE_COMPONENT_CHARACTERS
+                    || ".".equals(component)
+                    || "..".equals(component)) {
                     throw new IOException("Archive entry used an ambiguous path: " + entryName);
                 }
             }

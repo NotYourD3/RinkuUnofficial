@@ -1,16 +1,18 @@
 package de.keksuccino.rinku.platform.services;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.launchwrapper.Launch;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.relauncher.Side;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.launchwrapper.Launch;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Forge1710PlatformHelper implements IPlatformHelper {
+
     @Override
     public String getPlatformName() {
         return "forge";
@@ -23,7 +25,8 @@ public class Forge1710PlatformHelper implements IPlatformHelper {
 
     @Override
     public String getLoaderVersion() {
-        return Loader.instance().getFMLVersionString();
+        return Loader.instance()
+            .getFMLVersionString();
     }
 
     @Override
@@ -33,7 +36,8 @@ public class Forge1710PlatformHelper implements IPlatformHelper {
 
     @Override
     public String getModVersion(String modId) {
-        for (ModContainer mc : Loader.instance().getModList()) {
+        for (ModContainer mc : Loader.instance()
+            .getModList()) {
             if (modId.equals(mc.getModId())) {
                 return mc.getVersion();
             }
@@ -44,7 +48,8 @@ public class Forge1710PlatformHelper implements IPlatformHelper {
     @Override
     public List<String> getLoadedModIds() {
         List<String> ids = new ArrayList<String>();
-        for (ModContainer mc : Loader.instance().getModList()) {
+        for (ModContainer mc : Loader.instance()
+            .getModList()) {
             ids.add(mc.getModId());
         }
         return ids;
@@ -62,7 +67,8 @@ public class Forge1710PlatformHelper implements IPlatformHelper {
 
     @Override
     public boolean isOnClient() {
-        return FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT;
+        return FMLCommonHandler.instance()
+            .getEffectiveSide() == Side.CLIENT;
     }
 
     @Override

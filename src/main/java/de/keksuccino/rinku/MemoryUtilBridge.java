@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+
 import sun.misc.Unsafe;
 
 public final class MemoryUtilBridge {
@@ -32,8 +33,7 @@ public final class MemoryUtilBridge {
         CLEANER_CLEAN = cleanerClean;
     }
 
-    private MemoryUtilBridge() {
-    }
+    private MemoryUtilBridge() {}
 
     public static ByteBuffer memAlloc(int size) {
         return ByteBuffer.allocateDirect(size);
@@ -43,16 +43,14 @@ public final class MemoryUtilBridge {
         if (UNSAFE != null && buffer != null) {
             try {
                 return UNSAFE.getLong(buffer, UNSAFE.arrayBaseOffset(byte[].class) + 12L);
-            } catch (Throwable ignored) {
-            }
+            } catch (Throwable ignored) {}
         }
         if (buffer != null && buffer.isDirect()) {
             try {
                 Field addrField = Buffer.class.getDeclaredField("address");
                 addrField.setAccessible(true);
                 return addrField.getLong(buffer);
-            } catch (Throwable ignored) {
-            }
+            } catch (Throwable ignored) {}
         }
         return 0L;
     }
@@ -77,8 +75,7 @@ public final class MemoryUtilBridge {
                     CLEANER_CLEAN.invoke(cleaner);
                 }
             }
-        } catch (Throwable ignored) {
-        }
+        } catch (Throwable ignored) {}
     }
 
 }
