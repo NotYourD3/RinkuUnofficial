@@ -12,6 +12,7 @@ plugins {
     id("com.gtnewhorizons.gtnhconvention")
 }
 
+version = "3.0.4"
 // =============================================================================
 // JCEF (Java Chromium Embedded Framework) integration
 // =============================================================================

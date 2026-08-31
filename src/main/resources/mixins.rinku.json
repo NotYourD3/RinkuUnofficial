@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "de.keksuccino.rinku.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.rinku.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "MixinMinecraft",
+    "MixinGameRenderer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
