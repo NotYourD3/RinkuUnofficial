@@ -614,8 +614,23 @@ public class RinkuBrowser extends CefBrowserOsr {
 
     public void resize(int width, int height) {
         browser_rect_.setBounds(0, 0, width, height);
-        wasResized(width, height);
-    }
+    wasResized(width, height);
+}
+
+/**
+ * Sets the device scale factor (DPR) for this off-screen browser.
+ * <p>
+ * The CSS viewport size is controlled by {@link #resize(int, int)}, while the
+ * physical render resolution becomes {@code viewport * scaleFactor}. CSS layout
+ * (including font sizes) stays in logical (viewport) units, so increasing the
+ * scale factor produces a sharper texture without shrinking page content.
+ *
+ * @param scaleFactor device pixel ratio, must be >= 1.0
+ */
+public void setDeviceScaleFactor(double scaleFactor) {
+    if (scaleFactor < 1.0) scaleFactor = 1.0;
+    updateScreenInfo(scaleFactor, 32, 8);
+}
 
     // Inputs
     public void sendKeyPress(int keyCode, long scanCode, int modifiers) {

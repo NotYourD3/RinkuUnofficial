@@ -30,7 +30,7 @@ public class ExampleScreen extends GuiScreen {
     private static final int LOADING_BAR_HEIGHT = 2;
     private static final int LOADING_BAR_TRACK_COLOR = 0x55000000;
     private static final int LOADING_BAR_FILL_COLOR = 0xFF3BA8FF;
-    private static final String DEFAULT_URL = "https://www.google.com";
+    private static final String DEFAULT_URL = "mod://rinku/index.html";
 
     private static final int BUTTON_ID_BACK = 0;
     private static final int BUTTON_ID_FORWARD = 1;

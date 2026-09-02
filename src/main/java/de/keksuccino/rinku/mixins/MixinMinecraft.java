@@ -44,6 +44,7 @@ import de.keksuccino.rinku.binarydownload.RinkuDownloader;
 import de.keksuccino.rinku.binarydownload.RinkuDownloaderScreen;
 import de.keksuccino.rinku.platform.Services;
 import de.keksuccino.rinku.util.GameDirectoryUtils;
+import de.keksuccino.rinku.util.WindowsProcessInfo;
 
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft {
@@ -406,6 +407,28 @@ public abstract class MixinMinecraft {
                     .getName());
         }
 
+        // 同样尝试定位 LaunchClassLoader。LaunchWrapper 1.7.10 环境下 Minecraft/mod 类由 LaunchClassLoader
+        // 加载，它并不总是向 AppClassLoader 委派，所以必须同时把 JCEF 加进去，否则后续通过
+        // LaunchClassLoader 解析 Rinku 类对 org.cef.* 的符号引用时会抛出 CNFE/NCDFE。
+        // 这一步是"尽力而为" —— 如果当前不是 LaunchWrapper 环境（比如更高版本 mod 系统），
+        // 找不到 LaunchClassLoader 也完全没事。
+        ClassLoader launchClassLoader = Thread.currentThread().getContextClassLoader();
+        Method launchAddUrlMethod = null;
+        if (launchClassLoader != null && launchClassLoader != appClassLoader
+            && "net.minecraft.launchwrapper.LaunchClassLoader"
+                .equals(launchClassLoader.getClass().getName())) {
+            Class<?> lc = launchClassLoader.getClass();
+            while (lc != null) {
+                try {
+                    launchAddUrlMethod = lc.getDeclaredMethod("addURL", URL.class);
+                    launchAddUrlMethod.setAccessible(true);
+                    break;
+                } catch (NoSuchMethodException ignored) {
+                    lc = lc.getSuperclass();
+                }
+            }
+        }
+
         for (Path jar : jars) {
             URL jarUrl = jar.toUri()
                 .toURL();
@@ -414,6 +437,16 @@ public abstract class MixinMinecraft {
                 LOGGER_RINKU.info("Added JCEF JAR to classpath: {}", jar);
             } catch (ReflectiveOperationException e) {
                 throw new IOException("Failed to add JAR to classpath: " + jar, e);
+            }
+            if (launchAddUrlMethod != null) {
+                try {
+                    launchAddUrlMethod.invoke(launchClassLoader, jarUrl);
+                    LOGGER_RINKU.info("Added JCEF JAR to LaunchClassLoader: {}", jar);
+                } catch (ReflectiveOperationException e) {
+                    LOGGER_RINKU.warn(
+                        "Failed to add JAR to LaunchClassLoader (continuing anyway): " + jar,
+                        e);
+                }
             }
         }
     }
@@ -691,17 +724,6 @@ public abstract class MixinMinecraft {
         }
         tokens.add(sb.toString());
         return tokens.toArray(new String[0]);
-    }
-
-    @Unique
-    private static final class WindowsProcessInfo {
-
-        String node;
-        String commandLine;
-        String executablePath;
-        String name;
-        long parentPid;
-        long pid;
     }
 
 }

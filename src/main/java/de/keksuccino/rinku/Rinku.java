@@ -142,12 +142,11 @@ public final class Rinku {
 
                     LOGGER.info("[RINKU] Successfully initialized!");
 
-                    app.getHandle()
-                        .registerSchemeHandlerFactory(
-                            "mod",
-                            "",
-                            (browser, frame, url, request) -> (org.cef.handler.CefResourceHandler) ModScheme
-                                .createHandler(request.getURL()));
+                    LOGGER.info(
+                        "[RINKU] Registering SchemeHandlerFactory for scheme 'mod' (domain=\"\" to match all hosts)...");
+                    boolean factoryRegistered = ModSchemeFactoryHelper.registerFactory(app.getHandle());
+                    LOGGER.info("[RINKU] SchemeHandlerFactory registration result for 'mod': {}",
+                        factoryRegistered);
                     prefillPreloadedBrowserPoolsAsync();
 
                     // These callbacks are important because JCEF helper processes can otherwise
@@ -194,7 +193,7 @@ public final class Rinku {
 
     /**
      * Check if Rinku is initialized.
-     * 
+     *
      * @return true if Rinku is initialized correctly, false if not
      */
     public static boolean isInitialized() {
@@ -215,7 +214,7 @@ public final class Rinku {
 
     /**
      * Get access to various settings for Rinku.
-     * 
+     *
      * @return Returns the existing {@link RinkuSettings} or creates a new {@link RinkuSettings} and loads from disk
      *         (blocking)
      */
@@ -233,7 +232,7 @@ public final class Rinku {
 
     /**
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
-     * 
+     *
      * @return the {@link RinkuApp} instance
      */
     public static RinkuApp getApp() {
@@ -243,7 +242,7 @@ public final class Rinku {
 
     /**
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
-     * 
+     *
      * @return the {@link RinkuClient} instance
      */
     public static RinkuClient getClient() {
@@ -254,7 +253,7 @@ public final class Rinku {
     /**
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
      * Creates a new Chromium web browser with some starting URL. Can set it to be transparent rendering.
-     * 
+     *
      * @return the {@link RinkuBrowser} web browser instance
      */
     public static RinkuBrowser createBrowser(String url, boolean transparent) {
@@ -268,7 +267,7 @@ public final class Rinku {
      * Will assert that Rinku has been initialized; throws a {@link RuntimeException} if not.
      * Creates a new Chromium web browser with some starting URL, width, and height.
      * Can set it to be transparent rendering.
-     * 
+     *
      * @return the {@link RinkuBrowser} web browser instance
      */
     public static RinkuBrowser createBrowser(String url, boolean transparent, int width, int height) {
@@ -503,7 +502,7 @@ public final class Rinku {
 
     /**
      * Get the build-pinned git commit hash of the JCEF Java API and native runtime release.
-     * 
+     *
      * @return The git commit hash of java-cef
      */
     public static String getJavaCefCommit() throws IOException {

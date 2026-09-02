@@ -138,6 +138,17 @@ public final class CefUtil {
             return false;
         }
 
+        // 关键：必须在 CefApp.getInstance() 之前安装 CefAppHandler。
+        // onRegisterCustomSchemes() 会在所有子进程 (renderer/zygote/utility) 启动时被调用，
+        // 这样 "mod" scheme 才能同步到这些子进程中，防止出现 ERR_UNKNOWN_URL_SCHEME。
+        try {
+            CefApp.addAppHandler(new ModSchemeCefAppHandler(cefSwitches));
+            LOGGER.info("[ModScheme] CefApp.addAppHandler -> ModSchemeCefAppHandler installed");
+        } catch (Throwable t) {
+            // CEF 如果多次初始化可能会重复尝试添加 handler，这里不要让整个初始化失败。
+            LOGGER.warn("[ModScheme] Failed to call CefApp.addAppHandler (may be already installed): " + t.getMessage());
+        }
+
         CefSettings cefSettings = new CefSettings();
         cefSettings.windowless_rendering_enabled = true;
         if (settings.isUsingCache()) {

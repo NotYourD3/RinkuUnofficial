@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rinku - mod:// 协议测试页面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        .status-card {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .status-card .label {
+            font-size: 12px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .status-card .value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2d5a27;
+        }
+        .info-section {
+            margin-bottom: 24px;
+        }
+        .info-section h2 {
+            color: #444;
+            font-size: 18px;
+            margin-bottom: 12px;
+            padding-left: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        .info-item .key {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .info-item .val {
+            font-size: 14px;
+            color: #333;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .test-area {
+            background: #f0f0f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .test-area h3 {
+            color: #444;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: #764ba2;
+        }
+        button.secondary:hover {
+            background: #654190;
+        }
+        #log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 12px;
+            white-space: pre-wrap;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🌐</div>
+            <h1>Rinku mod:// 协议</h1>
+            <p class="subtitle">通过 mod:// 协议从 Mod 的 assets 中加载本地资源</p>
+        </div>
+
+        <div class="status-card">
+            <div class="label">协议状态</div>
+            <div class="value">✅ mod:// 协议工作正常！</div>
+        </div>
+
+        <div class="info-section">
+            <h2>页面信息</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="key">当前 URL</div>
+                    <div class="val" id="currentUrl">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="key">协议 (Scheme)</div>
+                    <div class="val" id="scheme">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="key">Mod 名称</div>
+                    <div class="val" id="modName">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="key">资源路径</div>
+                    <div class="val" id="resourcePath">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>使用说明</h2>
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; line-height: 1.8;">
+                <p style="color: #333; margin-bottom: 10px;"><strong>URL 格式：</strong></p>
+                <code style="background: #fff; padding: 6px 12px; border-radius: 4px; display: block; color: #d63384;">
+                    mod://&lt;modid&gt;/&lt;filename.html&gt;
+                </code>
+                <p style="color: #666; font-size: 13px; margin-top: 12px;">
+                    资源文件需要放在 Mod 的 <code>assets/&lt;modid&gt;/html/</code> 目录下。
+                </p>
+                <p style="color: #666; font-size: 13px; margin-top: 8px;">
+                    <strong>例如：</strong>本页面文件位于 <code>assets/rinku/html/index.html</code>，
+                    通过 <code>mod://rinku/index.html</code> 访问。
+                </p>
+            </div>
+        </div>
+
+        <div class="test-area">
+            <h3>🔧 交互测试区</h3>
+            <div class="button-group">
+                <button onclick="testLog('点击测试')">普通按钮</button>
+                <button class="secondary" onclick="testCounter()">计数器 +1</button>
+                <button onclick="testFetchAPI()">测试 Fetch API</button>
+            </div>
+            <div id="log">日志输出区：
+</div>
+        </div>
+
+        <div class="footer">
+            Rinku Unofficial - CEF Web Browser Integration for Minecraft 1.7.10
+        </div>
+    </div>
+
+    <script>
+        let counter = 0;
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.textContent += `[${time}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function testLog(msg) {
+            log('触发事件：' + msg);
+        }
+
+        function testCounter() {
+            counter++;
+            log('计数器当前值：' + counter);
+        }
+
+        async function testFetchAPI() {
+            log('尝试使用 Fetch API 加载自身...');
+            try {
+                const response = await fetch(location.href);
+                const text = await response.text();
+                log('✅ Fetch 成功！获取到 ' + text.length + ' 字符');
+            } catch (e) {
+                log('❌ Fetch 失败：' + e.message);
+            }
+        }
+
+        function parseModUrl() {
+            const url = location.href;
+            document.getElementById('currentUrl').textContent = url;
+
+            try {
+                const urlObj = new URL(url);
+                document.getElementById('scheme').textContent = urlObj.protocol.replace(':', '');
+                document.getElementById('modName').textContent = urlObj.hostname;
+                document.getElementById('resourcePath').textContent = urlObj.pathname.substring(1) || '(index)';
+            } catch (e) {
+                // Fallback for mod:// scheme which may not parse as standard URL
+                const match = url.match(/^mod:\/\/([^/]+)\/(.*)$/);
+                if (match) {
+                    document.getElementById('scheme').textContent = 'mod';
+                    document.getElementById('modName').textContent = match[1];
+                    document.getElementById('resourcePath').textContent = match[2] || '(index)';
+                }
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            parseModUrl();
+            log('页面加载完成！');
+            log('User Agent: ' + navigator.userAgent.substring(0, 60) + '...');
+        });
+    </script>
+</body>
+</html>
