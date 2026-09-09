@@ -21,7 +21,14 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.*;
+import net.minecraft.client.gui.GuiCreateWorld;
+import net.minecraft.client.gui.GuiMainMenu;
+import net.minecraft.client.gui.GuiMultiplayer;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiScreenAddServer;
+import net.minecraft.client.gui.GuiScreenResourcePacks;
+import net.minecraft.client.gui.GuiScreenServerList;
+import net.minecraft.client.gui.GuiSelectWorld;
 import net.minecraft.client.multiplayer.GuiConnecting;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.IChatComponent;
@@ -412,11 +419,13 @@ public abstract class MixinMinecraft {
         // LaunchClassLoader 解析 Rinku 类对 org.cef.* 的符号引用时会抛出 CNFE/NCDFE。
         // 这一步是"尽力而为" —— 如果当前不是 LaunchWrapper 环境（比如更高版本 mod 系统），
         // 找不到 LaunchClassLoader 也完全没事。
-        ClassLoader launchClassLoader = Thread.currentThread().getContextClassLoader();
+        ClassLoader launchClassLoader = Thread.currentThread()
+            .getContextClassLoader();
         Method launchAddUrlMethod = null;
         if (launchClassLoader != null && launchClassLoader != appClassLoader
-            && "net.minecraft.launchwrapper.LaunchClassLoader"
-                .equals(launchClassLoader.getClass().getName())) {
+            && "net.minecraft.launchwrapper.LaunchClassLoader".equals(
+                launchClassLoader.getClass()
+                    .getName())) {
             Class<?> lc = launchClassLoader.getClass();
             while (lc != null) {
                 try {
@@ -443,9 +452,7 @@ public abstract class MixinMinecraft {
                     launchAddUrlMethod.invoke(launchClassLoader, jarUrl);
                     LOGGER_RINKU.info("Added JCEF JAR to LaunchClassLoader: {}", jar);
                 } catch (ReflectiveOperationException e) {
-                    LOGGER_RINKU.warn(
-                        "Failed to add JAR to LaunchClassLoader (continuing anyway): " + jar,
-                        e);
+                    LOGGER_RINKU.warn("Failed to add JAR to LaunchClassLoader (continuing anyway): " + jar, e);
                 }
             }
         }

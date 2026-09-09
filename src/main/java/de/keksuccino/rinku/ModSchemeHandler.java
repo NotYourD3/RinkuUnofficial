@@ -31,7 +31,8 @@ public class ModSchemeHandler implements CefResourceHandler {
 
     private static InputStream getResource(String path) {
         // LaunchClassLoader / Forge 环境下，优先用上下文 ClassLoader（通常是加载 mod 的那个）
-        ClassLoader ctx = Thread.currentThread().getContextClassLoader();
+        ClassLoader ctx = Thread.currentThread()
+            .getContextClassLoader();
         if (ctx != null) {
             InputStream in = ctx.getResourceAsStream(path);
             if (in != null) return in;
@@ -49,7 +50,8 @@ public class ModSchemeHandler implements CefResourceHandler {
         } catch (Throwable ignored) {}
         // Fallback 3: 对 Minecraft.class 的 ClassLoader（LaunchWrapper 环境）
         try {
-            ClassLoader mc = Class.forName("net.minecraft.client.Minecraft").getClassLoader();
+            ClassLoader mc = Class.forName("net.minecraft.client.Minecraft")
+                .getClassLoader();
             if (mc != null && mc != ctx && mc != self) {
                 InputStream in = mc.getResourceAsStream(path);
                 if (in != null) return in;
@@ -65,8 +67,7 @@ public class ModSchemeHandler implements CefResourceHandler {
         // 处理 URL 中的 query 参数 / hash（CEF 可能带 ?query 或 #fragment）
         int qPos = Math.min(
             url.indexOf('?') >= 0 ? url.indexOf('?') : Integer.MAX_VALUE,
-            url.indexOf('#') >= 0 ? url.indexOf('#') : Integer.MAX_VALUE
-        );
+            url.indexOf('#') >= 0 ? url.indexOf('#') : Integer.MAX_VALUE);
         if (qPos != Integer.MAX_VALUE) url = url.substring(0, qPos);
 
         int pos = url.indexOf('/');
@@ -93,10 +94,14 @@ public class ModSchemeHandler implements CefResourceHandler {
         is = getResource(resourcePath);
         if (is == null) {
             LOGGER.warn("[ModScheme] Resource NOT found: {} (looked for {})", this.url, resourcePath);
-            serve404("Rinku Mod-Scheme: Resource not found\n\n" +
-                "Requested URL: " + this.url + "\n" +
-                "Resource path: " + resourcePath + "\n\n" +
-                "Make sure the file exists in your mod JAR at assets/<modid>/html/<filename>.html");
+            serve404(
+                "Rinku Mod-Scheme: Resource not found\n\n" + "Requested URL: "
+                    + this.url
+                    + "\n"
+                    + "Resource path: "
+                    + resourcePath
+                    + "\n\n"
+                    + "Make sure the file exists in your mod JAR at assets/<modid>/html/<filename>.html");
             cefCallback.Continue();
             return true;
         }
@@ -119,10 +124,12 @@ public class ModSchemeHandler implements CefResourceHandler {
         httpStatus = 404;
         httpStatusText = "Not Found";
         contentType = "text/html";
-        String body = "<!doctype html><html><head><meta charset=\"utf-8\"><title>404 - Resource not found</title>" +
-            "<style>body{font-family:Segoe UI,Arial,sans-serif;padding:40px;color:#333;background:#eee}" +
-            "h1{color:#b00}pre{background:#fff;padding:12px;border:1px solid #ccc;white-space:pre-wrap}</style>" +
-            "</head><body><h1>404 &mdash; mod:// resource not found</h1><pre>" + escapeHtml(message) + "</pre></body></html>";
+        String body = "<!doctype html><html><head><meta charset=\"utf-8\"><title>404 - Resource not found</title>"
+            + "<style>body{font-family:Segoe UI,Arial,sans-serif;padding:40px;color:#333;background:#eee}"
+            + "h1{color:#b00}pre{background:#fff;padding:12px;border:1px solid #ccc;white-space:pre-wrap}</style>"
+            + "</head><body><h1>404 &mdash; mod:// resource not found</h1><pre>"
+            + escapeHtml(message)
+            + "</pre></body></html>";
         is = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -131,11 +138,20 @@ public class ModSchemeHandler implements CefResourceHandler {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             switch (c) {
-                case '<': sb.append("&lt;"); break;
-                case '>': sb.append("&gt;"); break;
-                case '&': sb.append("&amp;"); break;
-                case '"': sb.append("&quot;"); break;
-                default: sb.append(c);
+                case '<':
+                    sb.append("&lt;");
+                    break;
+                case '>':
+                    sb.append("&gt;");
+                    break;
+                case '&':
+                    sb.append("&amp;");
+                    break;
+                case '"':
+                    sb.append("&quot;");
+                    break;
+                default:
+                    sb.append(c);
             }
         }
         return sb.toString();

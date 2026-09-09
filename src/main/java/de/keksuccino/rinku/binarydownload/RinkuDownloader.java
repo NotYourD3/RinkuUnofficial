@@ -32,7 +32,14 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.bsideup.jabel.Desugar;
 
-import de.keksuccino.rinku.*;
+import de.keksuccino.rinku.JcefRuntimeIdentity;
+import de.keksuccino.rinku.OSPlatform;
+import de.keksuccino.rinku.Rinku;
+import de.keksuccino.rinku.RinkuDownloadMirror;
+import de.keksuccino.rinku.RinkuJcefInstallationValidator;
+import de.keksuccino.rinku.RinkuJcefInstaller;
+import de.keksuccino.rinku.RinkuSecureArchiveExtractor;
+import de.keksuccino.rinku.RinkuVerifiedArchiveSource;
 import de.keksuccino.rinku.util.GameDirectoryUtils;
 
 public class RinkuDownloader {

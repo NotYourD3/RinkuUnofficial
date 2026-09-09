@@ -18,15 +18,20 @@ final class ModSchemeFactoryHelper {
 
     static boolean registerFactory(CefApp app) {
         LOGGER.info("[ModScheme] Calling CefApp.registerSchemeHandlerFactory: scheme=mod, domain=\"\"");
-        boolean ok = app.registerSchemeHandlerFactory(
-            "mod",
-            "",
-            (browser, frame, url, request) -> {
-                LOGGER.debug("[ModScheme] factory called, request URL={}", request.getURL());
-                return (CefResourceHandler) ModScheme.createHandler(request.getURL());
-            });
-        LOGGER.info("[ModScheme] registerSchemeHandlerFactory -> {}", ok);
-        return ok;
+        boolean modOk = app.registerSchemeHandlerFactory("mod", "", (browser, frame, url, request) -> {
+            LOGGER.debug("[ModScheme] factory called, request URL={}", request.getURL());
+            return (CefResourceHandler) ModScheme.createHandler(request.getURL());
+        });
+        LOGGER.info("[ModScheme] registerSchemeHandlerFactory(mod) -> {}", modOk);
+
+        LOGGER.info("[ModScheme] Calling CefApp.registerSchemeHandlerFactory: scheme=resource, domain=\"\"");
+        boolean resourceOk = app.registerSchemeHandlerFactory("resource", "", (browser, frame, url, request) -> {
+            LOGGER.debug("[ResourceScheme] factory called, request URL={}", request.getURL());
+            return (CefResourceHandler) ResourceScheme.createHandler(request.getURL());
+        });
+        LOGGER.info("[ModScheme] registerSchemeHandlerFactory(resource) -> {}", resourceOk);
+
+        return modOk && resourceOk;
     }
 
 }

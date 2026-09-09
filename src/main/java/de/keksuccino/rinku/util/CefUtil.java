@@ -146,7 +146,8 @@ public final class CefUtil {
             LOGGER.info("[ModScheme] CefApp.addAppHandler -> ModSchemeCefAppHandler installed");
         } catch (Throwable t) {
             // CEF 如果多次初始化可能会重复尝试添加 handler，这里不要让整个初始化失败。
-            LOGGER.warn("[ModScheme] Failed to call CefApp.addAppHandler (may be already installed): " + t.getMessage());
+            LOGGER
+                .warn("[ModScheme] Failed to call CefApp.addAppHandler (may be already installed): " + t.getMessage());
         }
 
         CefSettings cefSettings = new CefSettings();

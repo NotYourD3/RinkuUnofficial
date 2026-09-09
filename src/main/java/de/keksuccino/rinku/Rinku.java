@@ -1,7 +1,11 @@
 package de.keksuccino.rinku;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -143,9 +147,10 @@ public final class Rinku {
                     LOGGER.info("[RINKU] Successfully initialized!");
 
                     LOGGER.info(
-                        "[RINKU] Registering SchemeHandlerFactory for scheme 'mod' (domain=\"\" to match all hosts)...");
+                        "[RINKU] Registering SchemeHandlerFactory for schemes 'mod' and 'resource' (domain=\"\" to match all hosts)...");
                     boolean factoryRegistered = ModSchemeFactoryHelper.registerFactory(app.getHandle());
-                    LOGGER.info("[RINKU] SchemeHandlerFactory registration result for 'mod': {}",
+                    LOGGER.info(
+                        "[RINKU] SchemeHandlerFactory registration result for 'mod' and 'resource': {}",
                         factoryRegistered);
                     prefillPreloadedBrowserPoolsAsync();
 
