@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "Вимкнено",
   "rinku.options.user_agent": "Власний рядок User-Agent",
   "rinku.options.user_agent.desc": "Перевизначає рядок User-Agent браузера. Залиште поле порожнім, щоб використовувати стандартний ідентифікатор продукту Rinku. Потрібен перезапуск гри.",
+  "rinku.options.browser_frame_rate": "Частота кадрів браузера",
+  "rinku.options.browser_frame_rate.desc": "Максимальна частота кадрів позаекранного рендерингу для браузерів (1-240). Застосовується до новостворених браузерів.",
   "rinku.options.use_cache": "Постійний кеш: %s",
   "rinku.options.use_cache.desc": "Зберігає кеш браузера, файли cookie та дані сеансу між запусками. Потрібен перезапуск гри.",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "Wyłączone",
   "rinku.options.user_agent": "Niestandardowy agent użytkownika",
   "rinku.options.user_agent.desc": "Zastępuje agenta użytkownika przeglądarki. Pozostaw puste, aby użyć domyślnego identyfikatora produktu Rinku. Wymaga ponownego uruchomienia gry.",
+  "rinku.options.browser_frame_rate": "Szybkość klatek przeglądarki",
+  "rinku.options.browser_frame_rate.desc": "Maksymalna szybkość klatek renderowania pozaekranowego dla przeglądarek (1-240). Dotyczy nowo utworzonych przeglądarek.",
   "rinku.options.use_cache": "Trwała pamięć podręczna: %s",
   "rinku.options.use_cache.desc": "Przechowuje pamięć podręczną przeglądarki, pliki cookie i dane sesji między uruchomieniami. Wymaga ponownego uruchomienia gry.",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "Desativado",
   "rinku.options.user_agent": "Agente do usuário personalizado",
   "rinku.options.user_agent.desc": "Substitui o agente do usuário do navegador. Deixe em branco para usar o identificador de produto padrão do Rinku. É necessário reiniciar o jogo.",
+  "rinku.options.browser_frame_rate": "Taxa de quadros do navegador",
+  "rinku.options.browser_frame_rate.desc": "Taxa máxima de quadros de renderização fora da tela para navegadores (1-240). Aplica-se a navegadores recém-criados.",
   "rinku.options.use_cache": "Cache persistente: %s",
   "rinku.options.use_cache.desc": "Armazena o cache do navegador, cookies e dados da sessão entre as execuções. É necessário reiniciar o jogo.",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

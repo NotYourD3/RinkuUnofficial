@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "Deaktiviert",
   "rinku.options.user_agent": "Benutzerdefinierter User-Agent",
   "rinku.options.user_agent.desc": "Überschreibt den User-Agent des Browsers. Leer lassen, um Rinkus standardmäßige Produktkennung zu verwenden. Erfordert einen Neustart des Spiels.",
+  "rinku.options.browser_frame_rate": "Browser-Bildwiederholrate",
+  "rinku.options.browser_frame_rate.desc": "Maximale Off-Screen-Rendering-Bildwiederholrate für Browser (1-240). Gilt für neu erstellte Browser.",
   "rinku.options.use_cache": "Persistenter Cache: %s",
   "rinku.options.use_cache.desc": "Speichert Browser-Cache, Cookies und Sitzungsdaten zwischen den Starts. Erfordert einen Neustart des Spiels.",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

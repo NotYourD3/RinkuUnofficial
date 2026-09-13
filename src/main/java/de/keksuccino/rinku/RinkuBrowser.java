@@ -15,6 +15,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.cef.CefBrowserSettings;
 import org.cef.browser.CefBrowser;
 import org.cef.browser.CefBrowserOsr;
 import org.cef.callback.CefDragData;
@@ -119,7 +120,7 @@ public class RinkuBrowser extends CefBrowserOsr {
     protected volatile boolean popupDrawn = false;
 
     public RinkuBrowser(RinkuClient client, String url, boolean transparent) {
-        super(client.getHandle(), url, transparent, null);
+        super(client.getHandle(), url, transparent, null, createBrowserSettings());
         renderer = new RinkuRenderer(transparent);
         cursorChangeListener = (cefCursorID) -> setCursor(resolveCursorType(cefCursorID));
         if (!RinkuRenderCoordinator.register(this)) {
@@ -135,6 +136,12 @@ public class RinkuBrowser extends CefBrowserOsr {
         if (RenderStateBridge.isOnRenderThread()) {
             initializeRendererOnRenderThread();
         }
+    }
+
+    private static CefBrowserSettings createBrowserSettings() {
+        CefBrowserSettings settings = new CefBrowserSettings();
+        settings.windowless_frame_rate = Rinku.getSettings().getBrowserFrameRate();
+        return settings;
     }
 
     public RinkuRenderer getRenderer() {

@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "ปิดใช้งาน",
   "rinku.options.user_agent": "User agent กำหนดเอง",
   "rinku.options.user_agent.desc": "แทนที่ user agent ของเบราว์เซอร์ เว้นว่างไว้เพื่อใช้ตัวระบุผลิตภัณฑ์เริ่มต้นของ Rinku ต้องเริ่มเกมใหม่",
+  "rinku.options.browser_frame_rate": "อัตราเฟรมของเบราว์เซอร์",
+  "rinku.options.browser_frame_rate.desc": "อัตราเฟรมการเรนเดอร์นอกหน้าจอสูงสุดสำหรับเบราว์เซอร์ (1-240) ใช้กับเบราว์เซอร์ที่สร้างใหม่",
   "rinku.options.use_cache": "แคชถาวร: %s",
   "rinku.options.use_cache.desc": "จัดเก็บแคชของเบราว์เซอร์ คุกกี้ และข้อมูลเซสชันระหว่างการเปิดใช้งานแต่ละครั้ง ต้องเริ่มเกมใหม่",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

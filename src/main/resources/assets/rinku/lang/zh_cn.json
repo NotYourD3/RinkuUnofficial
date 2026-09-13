@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "禁用",
   "rinku.options.user_agent": "自定义用户代理",
   "rinku.options.user_agent.desc": "覆盖浏览器的用户代理。留空可使用 Rinku 的默认产品标识符。需要重启游戏。",
+  "rinku.options.browser_frame_rate": "浏览器帧率",
+  "rinku.options.browser_frame_rate.desc": "浏览器的最大离屏渲染帧率（1-240）。对新创建的浏览器生效。",
   "rinku.options.use_cache": "持久缓存：%s",
   "rinku.options.use_cache.desc": "在多次启动之间保留浏览器缓存、Cookie 和会话数据。需要重启游戏。",
   "rinku.options.enable_widevine": "Widevine CDM：%s",

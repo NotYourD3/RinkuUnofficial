@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "無効",
   "rinku.options.user_agent": "カスタムユーザーエージェント",
   "rinku.options.user_agent.desc": "ブラウザーのユーザーエージェントを上書きします。Rinku の既定の製品識別子を使用するには空欄にしてください。ゲームの再起動が必要です。",
+  "rinku.options.browser_frame_rate": "ブラウザーのフレームレート",
+  "rinku.options.browser_frame_rate.desc": "ブラウザーの最大オフスクリーン描画フレームレート（1-240）。新規作成されるブラウザーに適用されます。",
   "rinku.options.use_cache": "永続キャッシュ: %s",
   "rinku.options.use_cache.desc": "起動後もブラウザーのキャッシュ、Cookie、セッションデータを保持します。ゲームの再起動が必要です。",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

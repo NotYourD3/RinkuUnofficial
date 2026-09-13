@@ -16,6 +16,8 @@
   "rinku.options.toggle.disabled": "Disabled",
   "rinku.options.user_agent": "Custom user agent",
   "rinku.options.user_agent.desc": "Overrides the browser user agent. Leave blank to use Rinku's default product identifier. Requires a game restart.",
+  "rinku.options.browser_frame_rate": "Browser frame rate",
+  "rinku.options.browser_frame_rate.desc": "Maximum off-screen rendering frame rate for browsers (1-240). Applies to newly created browsers.",
   "rinku.options.use_cache": "Persistent cache: %s",
   "rinku.options.use_cache.desc": "Stores browser cache, cookies, and session data between launches. Requires a game restart.",
   "rinku.options.enable_widevine": "Widevine CDM: %s",

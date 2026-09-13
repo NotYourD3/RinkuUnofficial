@@ -29,6 +29,8 @@ public class RinkuSettings {
     static final long MAX_DOWNLOAD_EXTRACTED_BYTES = 10_000L * 1024L * 1024L;
     static final int MIN_BROWSER_PRELOAD_POOL_SIZE = 0;
     static final int MAX_BROWSER_PRELOAD_POOL_SIZE = 4;
+    static final int MIN_BROWSER_FRAME_RATE = 1;
+    static final int MAX_BROWSER_FRAME_RATE = 240;
 
     private static final String DEFAULT_DOWNLOAD_MIRROR = RinkuDownloader.OFFICIAL_MIRROR;
     private static final RinkuDownloader.MirrorPolicy DEFAULT_DOWNLOAD_MIRROR_POLICY = RinkuDownloader.MirrorPolicy.OFFICIAL_ONLY;
@@ -53,6 +55,7 @@ public class RinkuSettings {
     private static final boolean DEFAULT_BROWSER_PRELOAD_ENABLED = true;
     private static final int DEFAULT_BROWSER_PRELOAD_TRANSPARENT_POOL_SIZE = 1;
     private static final int DEFAULT_BROWSER_PRELOAD_OPAQUE_POOL_SIZE = 1;
+    private static final int DEFAULT_BROWSER_FRAME_RATE = 120;
 
     private boolean skipDownload;
     private String downloadMirror;
@@ -73,6 +76,7 @@ public class RinkuSettings {
     private boolean browserPreloadEnabled;
     private int browserPreloadTransparentPoolSize;
     private int browserPreloadOpaquePoolSize;
+    private int browserFrameRate;
     private final Object asyncSaveLock = new Object();
     private CompletableFuture<Void> pendingSave = CompletableFuture.completedFuture(null);
 
@@ -99,6 +103,7 @@ public class RinkuSettings {
         browserPreloadEnabled = DEFAULT_BROWSER_PRELOAD_ENABLED;
         browserPreloadTransparentPoolSize = DEFAULT_BROWSER_PRELOAD_TRANSPARENT_POOL_SIZE;
         browserPreloadOpaquePoolSize = DEFAULT_BROWSER_PRELOAD_OPAQUE_POOL_SIZE;
+        browserFrameRate = DEFAULT_BROWSER_FRAME_RATE;
     }
 
     public boolean isSkipDownload() {
@@ -321,6 +326,20 @@ public class RinkuSettings {
         Rinku.refreshPreloadedBrowserPool();
     }
 
+    public int getBrowserFrameRate() {
+        return browserFrameRate;
+    }
+
+    public void setBrowserFrameRate(int browserFrameRate) {
+        this.browserFrameRate = clampInt(
+            browserFrameRate,
+            MIN_BROWSER_FRAME_RATE,
+            MAX_BROWSER_FRAME_RATE,
+            DEFAULT_BROWSER_FRAME_RATE,
+            "browser-frame-rate");
+        saveAsync();
+    }
+
     public RinkuDownloader.DownloadPolicy createDownloadPolicy() {
         return new RinkuDownloader.DownloadPolicy(
             downloadMirrorPolicy,
@@ -379,6 +398,7 @@ public class RinkuSettings {
         properties
             .setProperty("browser-preload-transparent-pool-size", String.valueOf(browserPreloadTransparentPoolSize));
         properties.setProperty("browser-preload-opaque-pool-size", String.valueOf(browserPreloadOpaquePoolSize));
+        properties.setProperty("browser-frame-rate", String.valueOf(browserFrameRate));
 
         try (FileOutputStream output = new FileOutputStream(file)) {
             properties.store(output, null);
@@ -465,6 +485,12 @@ public class RinkuSettings {
             browserPreloadOpaquePoolSize,
             MIN_BROWSER_PRELOAD_POOL_SIZE,
             MAX_BROWSER_PRELOAD_POOL_SIZE);
+        browserFrameRate = parseInt(
+            properties,
+            "browser-frame-rate",
+            browserFrameRate,
+            MIN_BROWSER_FRAME_RATE,
+            MAX_BROWSER_FRAME_RATE);
     }
 
     private static RinkuDownloader.MirrorPolicy parseMirrorPolicy(String raw, RinkuDownloader.MirrorPolicy fallback) {

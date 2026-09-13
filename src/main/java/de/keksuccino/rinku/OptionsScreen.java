@@ -79,6 +79,8 @@ public class OptionsScreen extends GuiScreen {
         this.pendingTextValues
             .put("user-agent", this.settings.getUserAgent() == null ? "" : this.settings.getUserAgent());
         this.pendingTextValues
+            .put("browser-frame-rate", Integer.toString(this.settings.getBrowserFrameRate()));
+        this.pendingTextValues
             .put("download-mirror", this.settings.getDownloadMirror() == null ? "" : this.settings.getDownloadMirror());
         this.pendingTextValues
             .put("download-connect-timeout-ms", Integer.toString(this.settings.getDownloadConnectTimeoutMs()));
@@ -180,6 +182,24 @@ public class OptionsScreen extends GuiScreen {
                 this.settings::getUserAgent,
                 this.settings::setUserAgent,
                 translate("rinku.options.validation.user_agent")));
+        rowY += OPTION_ROW_ADVANCE * 2;
+
+        addTextOption(
+            rowY,
+            BROWSER_TAB_INDEX,
+            new TextOption<>(
+                "browser-frame-rate",
+                "rinku.options.browser_frame_rate",
+                "rinku.options.browser_frame_rate.desc",
+                3,
+                value -> RinkuOptionsInput
+                    .parseInt(value, RinkuSettings.MIN_BROWSER_FRAME_RATE, RinkuSettings.MAX_BROWSER_FRAME_RATE),
+                this.settings::getBrowserFrameRate,
+                this.settings::setBrowserFrameRate,
+                translate(
+                    "rinku.options.validation.integer_range",
+                    RinkuSettings.MIN_BROWSER_FRAME_RATE,
+                    RinkuSettings.MAX_BROWSER_FRAME_RATE)));
         rowY += OPTION_ROW_ADVANCE * 2;
 
         addFullWidthOption(
