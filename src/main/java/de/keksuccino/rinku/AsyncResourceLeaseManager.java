@@ -9,8 +9,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import com.github.bsideup.jabel.Desugar;
 
@@ -56,18 +56,19 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
         return accepting;
     }
 
-    boolean offer(K stream, Function<Boolean, ? extends T> resourceFactory, Consumer<? super T> task,
+    boolean offer(K stream, BiFunction<Boolean, ? super T, ? extends T> resourceFactory, Consumer<? super T> task,
         Consumer<? super Throwable> failureHandler) {
         Objects.requireNonNull(stream, "stream");
         Objects.requireNonNull(resourceFactory, "resourceFactory");
         Objects.requireNonNull(task, "task");
         Objects.requireNonNull(failureHandler, "failureHandler");
 
-        // Predict whether the new resource will be marked for full resynchronization before creating it.
-        // This lets the factory avoid copying the entire frame when only dirty regions are needed.
-        // The prediction is conservative: it may be true when a full upload is not strictly required
-        // (wastes a full copy), but never false when one is (which would lose required pixels).
+        // Predict whether the new resource requires a full resynchronization upload (because texture state is
+        // uncertain) and capture the resource that will be replaced. The replaced resource's dirty regions are
+        // not yet uploaded, but the new callback buffer already contains their latest pixels, so the factory
+        // can copy the union of both dirty-rect sets instead of falling back to a full frame copy.
         boolean predictFullUpload;
+        T replacedResource;
         stateLock.lock();
         try {
             while (accepting && allocationInProgress) {
@@ -80,7 +81,9 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
                 resyncRequired.add(stream);
                 return false;
             }
-            predictFullUpload = pendingLeases.containsKey(stream) || resyncRequired.contains(stream);
+            predictFullUpload = resyncRequired.contains(stream);
+            Lease<K, T> existingLease = pendingLeases.get(stream);
+            replacedResource = existingLease != null ? existingLease.resource() : null;
             allocationInProgress = true;
             allocationEpoch = resourceEpoch;
         } finally {
@@ -89,8 +92,9 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
 
         T resource;
         try {
-            resource = Objects
-                .requireNonNull(resourceFactory.apply(predictFullUpload), "resourceFactory returned null");
+            resource = Objects.requireNonNull(
+                resourceFactory.apply(predictFullUpload, replacedResource),
+                "resourceFactory returned null");
         } catch (Throwable failure) {
             finishFailedAllocation(stream);
             reportFailure(failureHandler, failure);
@@ -104,7 +108,9 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
         try {
             if (accepting && allocationEpoch == resourceEpoch) {
                 Lease<K, T> existingLease = pendingLeases.get(stream);
-                boolean actuallyFullUpload = existingLease != null || resyncRequired.remove(stream);
+                // A replaced lease does not force a full upload: its dirty regions were merged into the
+                // new resource by the factory. Only an explicit resync marker requires one.
+                boolean actuallyFullUpload = existingLease == null && resyncRequired.remove(stream);
                 if (actuallyFullUpload) {
                     resyncMarker.accept(resource);
                 }

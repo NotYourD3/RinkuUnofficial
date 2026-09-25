@@ -275,12 +275,12 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     private boolean onPaint(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height) {
-        paintCallbackLock.lock();
-        try {
-            if (!asyncPaintBufferLeases.isAccepting() || closeController.isCloseRequested()) {
-                return false;
-            }
-            if (RenderStateBridge.isOnRenderThread()) {
+        if (RenderStateBridge.isOnRenderThread()) {
+            paintCallbackLock.lock();
+            try {
+                if (!asyncPaintBufferLeases.isAccepting() || closeController.isCloseRequested()) {
+                    return false;
+                }
                 // Apply older copied callbacks first so this callback can safely upload only its dirty regions.
                 pumpAsyncPaintsOnRenderThread();
                 if (closeController.isCloseRequested()) {
@@ -316,27 +316,50 @@ public class RinkuBrowser extends CefBrowserOsr {
                     endRenderOperation();
                 }
                 return !closeController.isCloseRequested();
+            } finally {
+                paintCallbackLock.unlock();
             }
+        }
 
-            Minecraft minecraft = Minecraft.getMinecraft();
-            if (minecraft == null) {
+        // Async path: hold the lock only long enough to snapshot shared popup state. The expensive pixel
+        // copy runs outside the lock so the render thread can upload previous frames without blocking.
+        Rectangle[] dirtyRectsCopy;
+        Rectangle popupRectSnapshot;
+        boolean showPopupSnapshot;
+        long popupStateGeneration;
+        paintCallbackLock.lock();
+        try {
+            if (!asyncPaintBufferLeases.isAccepting() || closeController.isCloseRequested()) {
                 return false;
             }
-            PaintSurface surface = PaintSurface.fromPopup(popup);
-            return asyncPaintBufferLeases.offer(
-                surface,
-                (requireFullUpload) -> createAsyncPaintFrame(
-                    surface,
-                    dirtyRects,
-                    buffer,
-                    width,
-                    height,
-                    requireFullUpload),
-                this::renderAsyncPaintFrame,
-                this::logAsyncPaintFailure);
+            dirtyRectsCopy = copyDirtyRects(dirtyRects);
+            popupRectSnapshot = popupPaintState.geometry();
+            showPopupSnapshot = popupPaintState.visible();
+            popupStateGeneration = popupPaintState.generation();
         } finally {
             paintCallbackLock.unlock();
         }
+
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft == null) {
+            return false;
+        }
+        PaintSurface surface = PaintSurface.fromPopup(popup);
+        return asyncPaintBufferLeases.offer(
+            surface,
+            (requireFullUpload, replacedFrame) -> createAsyncPaintFrame(
+                surface,
+                dirtyRectsCopy,
+                buffer,
+                width,
+                height,
+                requireFullUpload,
+                replacedFrame,
+                popupRectSnapshot,
+                showPopupSnapshot,
+                popupStateGeneration),
+            this::renderAsyncPaintFrame,
+            this::logAsyncPaintFailure);
     }
 
     private void logAsyncPaintFailure(Throwable failure) {
@@ -344,24 +367,25 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     private AsyncPaintFrame createAsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer,
-        int width, int height, boolean requireFullUpload) {
-        Rectangle[] dirtyRectsCopy = copyDirtyRects(dirtyRects);
-        Rectangle popupRectSnapshot = popupPaintState.geometry();
+        int width, int height, boolean requireFullUpload, AsyncPaintFrame replacedFrame,
+        Rectangle popupRectSnapshot, boolean showPopupSnapshot, long popupStateGeneration) {
+        Rectangle[] dirtyRectsCopy = dirtyRects;
 
         if (surface == PaintSurface.VIEW && !requireFullUpload) {
-            CompactCopyResult compact = copyCompactViewRects(dirtyRectsCopy, buffer, width, height);
+            Rectangle[] mergedDirtyRects = mergeDirtyRects(dirtyRectsCopy, replacedFrame);
+            CompactCopyResult compact = copyCompactViewRects(mergedDirtyRects, buffer, width, height);
             if (compact != null) {
                 return new AsyncPaintFrame(
                     surface,
-                    dirtyRectsCopy,
+                    mergedDirtyRects,
                     null,
                     compact.buffer(),
                     compact.regions(),
                     width,
                     height,
                     popupRectSnapshot,
-                    popupPaintState.visible(),
-                    popupPaintState.generation());
+                    showPopupSnapshot,
+                    popupStateGeneration);
             }
         }
 
@@ -376,12 +400,29 @@ public class RinkuBrowser extends CefBrowserOsr {
                 width,
                 height,
                 popupRectSnapshot,
-                popupPaintState.visible(),
-                popupPaintState.generation());
+                showPopupSnapshot,
+                popupStateGeneration);
         } catch (Throwable failure) {
             MemoryUtilBridge.memFree(bufferCopy);
             throw failure;
         }
+    }
+
+    private static Rectangle[] mergeDirtyRects(Rectangle[] current, AsyncPaintFrame replacedFrame) {
+        if (replacedFrame == null || replacedFrame.surface() != PaintSurface.VIEW) {
+            return current;
+        }
+        Rectangle[] replaced = replacedFrame.dirtyRects();
+        if (replaced == null || replaced.length == 0) {
+            return current;
+        }
+        if (current == null || current.length == 0) {
+            return replaced;
+        }
+        Rectangle[] merged = new Rectangle[current.length + replaced.length];
+        System.arraycopy(current, 0, merged, 0, current.length);
+        System.arraycopy(replaced, 0, merged, current.length, replaced.length);
+        return merged;
     }
 
     private static CompactCopyResult copyCompactViewRects(Rectangle[] dirtyRects, ByteBuffer buffer, int width,
