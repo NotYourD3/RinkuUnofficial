@@ -30,7 +30,8 @@ public class RinkuRenderer {
     private RinkuDirectTexture directTexture;
     private boolean textureRegistered = false;
     private ByteBuffer fallbackRgbaUploadBuffer;
-    private int pixelUnpackPboId = 0;
+    private final int[] pixelUnpackPboIds = new int[2];
+    private int pboToggle = 0;
 
     private static Method nglTexImage2DMethod;
     private static Method nglTexSubImage2DMethod;
@@ -93,9 +94,11 @@ public class RinkuRenderer {
             GL11.glDeleteTextures(glTextureId);
             glTextureId = 0;
         }
-        if (pixelUnpackPboId != 0) {
-            GL15.glDeleteBuffers(pixelUnpackPboId);
-            pixelUnpackPboId = 0;
+        for (int i = 0; i < pixelUnpackPboIds.length; i++) {
+            if (pixelUnpackPboIds[i] != 0) {
+                GL15.glDeleteBuffers(pixelUnpackPboIds[i]);
+                pixelUnpackPboIds[i] = 0;
+            }
         }
         fallbackRgbaUploadBuffer = null;
 
@@ -191,12 +194,30 @@ public class RinkuRenderer {
         nativeTexMethodsResolved = true;
         try {
             nglTexImage2DMethod = GL11.class.getDeclaredMethod(
-                "nglTexImage2D", int.class, int.class, int.class, int.class, int.class,
-                int.class, int.class, int.class, long.class, long.class);
+                "nglTexImage2D",
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                long.class,
+                long.class);
             nglTexImage2DMethod.setAccessible(true);
             nglTexSubImage2DMethod = GL11.class.getDeclaredMethod(
-                "nglTexSubImage2D", int.class, int.class, int.class, int.class, int.class,
-                int.class, int.class, int.class, long.class, long.class);
+                "nglTexSubImage2D",
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                int.class,
+                long.class,
+                long.class);
             nglTexSubImage2DMethod.setAccessible(true);
             glTexImage2DPointerField = ContextCapabilities.class.getDeclaredField("glTexImage2D");
             glTexImage2DPointerField.setAccessible(true);
@@ -212,26 +233,37 @@ public class RinkuRenderer {
         }
     }
 
-    private static void nglTexImage2D(int target, int level, int internalformat, int width, int height,
-        int border, int format, int type) {
+    private static void nglTexImage2D(int target, int level, int internalformat, int width, int height, int border,
+        int format, int type) {
         try {
             long fn = glTexImage2DPointerField.getLong(GLContext.getCapabilities());
-            nglTexImage2DMethod.invoke(null, target, level, internalformat, width, height,
-                border, format, type, 0L, fn);
+            nglTexImage2DMethod
+                .invoke(null, target, level, internalformat, width, height, border, format, type, 0L, fn);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to invoke nglTexImage2D via reflection", t);
         }
     }
 
-    private static void nglTexSubImage2D(int target, int level, int xoffset, int yoffset,
-        int width, int height, int format, int type) {
+    private static void nglTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height,
+        int format, int type) {
         try {
             long fn = glTexSubImage2DPointerField.getLong(GLContext.getCapabilities());
-            nglTexSubImage2DMethod.invoke(null, target, level, xoffset, yoffset, width, height,
-                format, type, 0L, fn);
+            nglTexSubImage2DMethod.invoke(null, target, level, xoffset, yoffset, width, height, format, type, 0L, fn);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to invoke nglTexSubImage2D via reflection", t);
         }
+    }
+
+    private int getOrCreatePbo() {
+        int idx = pboToggle & 1;
+        if (pixelUnpackPboIds[idx] == 0) {
+            pixelUnpackPboIds[idx] = GL15.glGenBuffers();
+            if (pixelUnpackPboIds[idx] == 0) {
+                return 0;
+            }
+        }
+        pboToggle++;
+        return pixelUnpackPboIds[idx];
     }
 
     private boolean uploadSubImageWithPbo(ByteBuffer buffer, int x, int y, int width, int height) {
@@ -242,13 +274,11 @@ public class RinkuRenderer {
         if (!ensureNativeTexMethodsResolved()) {
             return false;
         }
-        if (pixelUnpackPboId == 0) {
-            pixelUnpackPboId = GL15.glGenBuffers();
-            if (pixelUnpackPboId == 0) {
-                return false;
-            }
+        int pboId = getOrCreatePbo();
+        if (pboId == 0) {
+            return false;
         }
-        GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelUnpackPboId);
+        GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pboId);
         try {
             GL15.glBufferData(GL21.GL_PIXEL_UNPACK_BUFFER, size, GL15.GL_STREAM_DRAW);
             ByteBuffer mapped = GL15.glMapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, GL15.GL_WRITE_ONLY, size, null);
@@ -257,8 +287,15 @@ public class RinkuRenderer {
             }
             mapped.put(buffer);
             GL15.glUnmapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER);
-            nglTexSubImage2D(GL11.GL_TEXTURE_2D, 0, x, y, width, height,
-                GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV);
+            nglTexSubImage2D(
+                GL11.GL_TEXTURE_2D,
+                0,
+                x,
+                y,
+                width,
+                height,
+                GL12.GL_BGRA,
+                GL12.GL_UNSIGNED_INT_8_8_8_8_REV);
             return true;
         } finally {
             GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
@@ -273,13 +310,11 @@ public class RinkuRenderer {
         if (!ensureNativeTexMethodsResolved()) {
             return false;
         }
-        if (pixelUnpackPboId == 0) {
-            pixelUnpackPboId = GL15.glGenBuffers();
-            if (pixelUnpackPboId == 0) {
-                return false;
-            }
+        int pboId = getOrCreatePbo();
+        if (pboId == 0) {
+            return false;
         }
-        GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pixelUnpackPboId);
+        GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, pboId);
         try {
             GL15.glBufferData(GL21.GL_PIXEL_UNPACK_BUFFER, size, GL15.GL_STREAM_DRAW);
             ByteBuffer mapped = GL15.glMapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, GL15.GL_WRITE_ONLY, size, null);
@@ -288,8 +323,15 @@ public class RinkuRenderer {
             }
             mapped.put(buffer);
             GL15.glUnmapBuffer(GL21.GL_PIXEL_UNPACK_BUFFER);
-            nglTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height,
-                0, GL12.GL_BGRA, GL12.GL_UNSIGNED_INT_8_8_8_8_REV);
+            nglTexImage2D(
+                GL11.GL_TEXTURE_2D,
+                0,
+                GL11.GL_RGBA,
+                width,
+                height,
+                0,
+                GL12.GL_BGRA,
+                GL12.GL_UNSIGNED_INT_8_8_8_8_REV);
             return true;
         } finally {
             GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);

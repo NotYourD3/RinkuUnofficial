@@ -367,8 +367,8 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     private AsyncPaintFrame createAsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer,
-        int width, int height, boolean requireFullUpload, AsyncPaintFrame replacedFrame,
-        Rectangle popupRectSnapshot, boolean showPopupSnapshot, long popupStateGeneration) {
+        int width, int height, boolean requireFullUpload, AsyncPaintFrame replacedFrame, Rectangle popupRectSnapshot,
+        boolean showPopupSnapshot, long popupStateGeneration) {
         Rectangle[] dirtyRectsCopy = dirtyRects;
 
         if (surface == PaintSurface.VIEW && !requireFullUpload) {
