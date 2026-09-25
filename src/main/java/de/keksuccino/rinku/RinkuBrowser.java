@@ -6,6 +6,8 @@ import static org.lwjgl.opengl.GL12.*;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -44,7 +46,10 @@ public class RinkuBrowser extends CefBrowserOsr {
      */
     private final RinkuRenderer renderer;
     private final AsyncResourceLeaseManager<PaintSurface, AsyncPaintFrame> asyncPaintBufferLeases = new AsyncResourceLeaseManager<>(
-        frame -> MemoryUtilBridge.memFree(frame.buffer()),
+        frame -> {
+            MemoryUtilBridge.memFree(frame.fullBuffer());
+            MemoryUtilBridge.memFree(frame.compactBuffer());
+        },
         AsyncPaintFrame::requireFullUpload,
         MAX_PENDING_PAINT_STREAMS);
     private final ReentrantLock paintCallbackLock = new ReentrantLock();
@@ -140,7 +145,8 @@ public class RinkuBrowser extends CefBrowserOsr {
 
     private static CefBrowserSettings createBrowserSettings() {
         CefBrowserSettings settings = new CefBrowserSettings();
-        settings.windowless_frame_rate = Rinku.getSettings().getBrowserFrameRate();
+        settings.windowless_frame_rate = Rinku.getSettings()
+            .getBrowserFrameRate();
         return settings;
     }
 
@@ -292,6 +298,8 @@ public class RinkuBrowser extends CefBrowserOsr {
                         popup,
                         dirtyRectsCopy,
                         buffer,
+                        null,
+                        null,
                         width,
                         height,
                         popupRectSnapshot,
@@ -317,7 +325,13 @@ public class RinkuBrowser extends CefBrowserOsr {
             PaintSurface surface = PaintSurface.fromPopup(popup);
             return asyncPaintBufferLeases.offer(
                 surface,
-                () -> createAsyncPaintFrame(surface, dirtyRects, buffer, width, height),
+                (requireFullUpload) -> createAsyncPaintFrame(
+                    surface,
+                    dirtyRects,
+                    buffer,
+                    width,
+                    height,
+                    requireFullUpload),
                 this::renderAsyncPaintFrame,
                 this::logAsyncPaintFailure);
         } finally {
@@ -330,14 +344,35 @@ public class RinkuBrowser extends CefBrowserOsr {
     }
 
     private AsyncPaintFrame createAsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer,
-        int width, int height) {
+        int width, int height, boolean requireFullUpload) {
+        Rectangle[] dirtyRectsCopy = copyDirtyRects(dirtyRects);
+        Rectangle popupRectSnapshot = popupPaintState.geometry();
+
+        if (surface == PaintSurface.VIEW && !requireFullUpload) {
+            CompactCopyResult compact = copyCompactViewRects(dirtyRectsCopy, buffer, width, height);
+            if (compact != null) {
+                return new AsyncPaintFrame(
+                    surface,
+                    dirtyRectsCopy,
+                    null,
+                    compact.buffer(),
+                    compact.regions(),
+                    width,
+                    height,
+                    popupRectSnapshot,
+                    popupPaintState.visible(),
+                    popupPaintState.generation());
+            }
+        }
+
         ByteBuffer bufferCopy = cloneBufferForAsyncPaint(buffer);
         try {
-            Rectangle popupRectSnapshot = popupPaintState.geometry();
             return new AsyncPaintFrame(
                 surface,
-                copyDirtyRects(dirtyRects),
+                dirtyRectsCopy,
                 bufferCopy,
+                null,
+                null,
                 width,
                 height,
                 popupRectSnapshot,
@@ -347,6 +382,46 @@ public class RinkuBrowser extends CefBrowserOsr {
             MemoryUtilBridge.memFree(bufferCopy);
             throw failure;
         }
+    }
+
+    private static CompactCopyResult copyCompactViewRects(Rectangle[] dirtyRects, ByteBuffer buffer, int width,
+        int height) {
+        if (dirtyRects == null || dirtyRects.length == 0 || buffer == null) {
+            return null;
+        }
+
+        int totalBytes = 0;
+        List<Rectangle> validRects = new ArrayList<>(dirtyRects.length);
+        for (Rectangle dirtyRect : dirtyRects) {
+            Rectangle clipped = clipRect(dirtyRect, width, height);
+            if (clipped != null) {
+                validRects.add(clipped);
+                totalBytes += clipped.width * clipped.height * 4;
+            }
+        }
+        if (validRects.isEmpty() || totalBytes <= 0) {
+            return null;
+        }
+
+        ByteBuffer compact = MemoryUtilBridge.memAlloc(totalBytes);
+        DirtyRegion[] regions = new DirtyRegion[validRects.size()];
+        ByteBuffer sourceView = buffer.duplicate();
+        int offset = 0;
+        for (int i = 0; i < validRects.size(); i++) {
+            Rectangle rect = validRects.get(i);
+            int bytesPerRow = rect.width << 2;
+            for (int row = 0; row < rect.height; row++) {
+                int srcIndex = ((rect.y + row) * width + rect.x) << 2;
+                sourceView.clear();
+                sourceView.position(srcIndex);
+                sourceView.limit(srcIndex + bytesPerRow);
+                compact.put(sourceView);
+            }
+            regions[i] = new DirtyRegion(rect.x, rect.y, rect.width, rect.height, offset);
+            offset += bytesPerRow * rect.height;
+        }
+        compact.flip();
+        return new CompactCopyResult(compact, regions);
     }
 
     private void renderAsyncPaintFrame(AsyncPaintFrame frame) {
@@ -371,7 +446,9 @@ public class RinkuBrowser extends CefBrowserOsr {
                 onPaintRenderThread(
                     frame.surface() == PaintSurface.POPUP,
                     frame.dirtyRects(),
-                    frame.buffer(),
+                    frame.fullBuffer(),
+                    frame.compactBuffer(),
+                    frame.compactRegions(),
                     frame.width(),
                     frame.height(),
                     popupRect,
@@ -412,10 +489,17 @@ public class RinkuBrowser extends CefBrowserOsr {
         closeBrowser(true);
     }
 
-    private void onPaintRenderThread(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height,
-        Rectangle popupRect, boolean showPopupSnapshot, long popupStateGeneration, boolean forceFullUpload) {
+    private void onPaintRenderThread(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, ByteBuffer compactBuffer,
+        DirtyRegion[] compactRegions, int width, int height, Rectangle popupRect, boolean showPopupSnapshot,
+        long popupStateGeneration, boolean forceFullUpload) {
         if (!popup) {
             if (forceFullUpload || lastWidth != width || lastHeight != height || !renderer.supportsDirtyRectUpload()) {
+                if (buffer == null) {
+                    // A compact frame cannot satisfy a full upload request. Drop it and resync so the
+                    // next callback carries a complete frame.
+                    asyncPaintBufferLeases.requireResync(PaintSurface.VIEW);
+                    return;
+                }
                 lastWidth = width;
                 lastHeight = height;
                 renderer.onPaint(buffer, width, height);
@@ -423,17 +507,33 @@ public class RinkuBrowser extends CefBrowserOsr {
                 return;
             }
 
-            for (Rectangle dirtyRect : dirtyRects) {
-                Rectangle clippedRect = clipRect(dirtyRect, width, height);
-                if (clippedRect == null) {
-                    continue;
+            if (compactBuffer != null && compactRegions != null) {
+                for (DirtyRegion region : compactRegions) {
+                    if (region.width <= 0 || region.height <= 0) {
+                        continue;
+                    }
+                    ByteBuffer regionView = compactBuffer.duplicate();
+                    regionView.position(region.offset);
+                    regionView.limit(region.offset + region.bytes);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, renderer.getTextureID());
+                    GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, region.width);
+                    GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, 0);
+                    GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, 0);
+                    renderer.onPaint(regionView, region.destX, region.destY, region.width, region.height);
                 }
+            } else {
+                for (Rectangle dirtyRect : dirtyRects) {
+                    Rectangle clippedRect = clipRect(dirtyRect, width, height);
+                    if (clippedRect == null) {
+                        continue;
+                    }
 
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, renderer.getTextureID());
-                GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, width);
-                GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, clippedRect.x);
-                GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, clippedRect.y);
-                renderer.onPaint(buffer, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, renderer.getTextureID());
+                    GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, width);
+                    GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, clippedRect.x);
+                    GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, clippedRect.y);
+                    renderer.onPaint(buffer, clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height);
+                }
             }
 
             restorePopupAfterViewPaint(width, height, popupRect, showPopupSnapshot, popupStateGeneration);
@@ -1188,11 +1288,51 @@ public class RinkuBrowser extends CefBrowserOsr {
         }
     }
 
+    private static final class DirtyRegion {
+
+        private final int destX;
+        private final int destY;
+        private final int width;
+        private final int height;
+        private final int offset;
+        private final int bytes;
+
+        private DirtyRegion(int destX, int destY, int width, int height, int offset) {
+            this.destX = destX;
+            this.destY = destY;
+            this.width = width;
+            this.height = height;
+            this.offset = offset;
+            this.bytes = width * height * 4;
+        }
+    }
+
+    private static final class CompactCopyResult {
+
+        private final ByteBuffer buffer;
+        private final DirtyRegion[] regions;
+
+        private CompactCopyResult(ByteBuffer buffer, DirtyRegion[] regions) {
+            this.buffer = buffer;
+            this.regions = regions;
+        }
+
+        private ByteBuffer buffer() {
+            return buffer;
+        }
+
+        private DirtyRegion[] regions() {
+            return regions;
+        }
+    }
+
     private static final class AsyncPaintFrame {
 
         private final PaintSurface surface;
         private final Rectangle[] dirtyRects;
-        private final ByteBuffer buffer;
+        private final ByteBuffer fullBuffer;
+        private final ByteBuffer compactBuffer;
+        private final DirtyRegion[] compactRegions;
         private final int width;
         private final int height;
         private final Rectangle popupRect;
@@ -1200,11 +1340,14 @@ public class RinkuBrowser extends CefBrowserOsr {
         private final long popupStateGeneration;
         private volatile boolean fullUpload;
 
-        private AsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height,
-            Rectangle popupRect, boolean showPopup, long popupStateGeneration) {
+        private AsyncPaintFrame(PaintSurface surface, Rectangle[] dirtyRects, ByteBuffer fullBuffer,
+            ByteBuffer compactBuffer, DirtyRegion[] compactRegions, int width, int height, Rectangle popupRect,
+            boolean showPopup, long popupStateGeneration) {
             this.surface = surface;
             this.dirtyRects = dirtyRects;
-            this.buffer = buffer;
+            this.fullBuffer = fullBuffer;
+            this.compactBuffer = compactBuffer;
+            this.compactRegions = compactRegions;
             this.width = width;
             this.height = height;
             this.popupRect = popupRect;
@@ -1220,8 +1363,16 @@ public class RinkuBrowser extends CefBrowserOsr {
             return dirtyRects;
         }
 
-        private ByteBuffer buffer() {
-            return buffer;
+        private ByteBuffer fullBuffer() {
+            return fullBuffer;
+        }
+
+        private ByteBuffer compactBuffer() {
+            return compactBuffer;
+        }
+
+        private DirtyRegion[] compactRegions() {
+            return compactRegions;
         }
 
         private int width() {

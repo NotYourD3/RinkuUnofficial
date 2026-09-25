@@ -78,8 +78,7 @@ public class OptionsScreen extends GuiScreen {
     private void initializePendingTextValues() {
         this.pendingTextValues
             .put("user-agent", this.settings.getUserAgent() == null ? "" : this.settings.getUserAgent());
-        this.pendingTextValues
-            .put("browser-frame-rate", Integer.toString(this.settings.getBrowserFrameRate()));
+        this.pendingTextValues.put("browser-frame-rate", Integer.toString(this.settings.getBrowserFrameRate()));
         this.pendingTextValues
             .put("download-mirror", this.settings.getDownloadMirror() == null ? "" : this.settings.getDownloadMirror());
         this.pendingTextValues

@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import com.github.bsideup.jabel.Desugar;
 
@@ -56,20 +56,41 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
         return accepting;
     }
 
-    boolean offer(K stream, Supplier<? extends T> resourceFactory, Consumer<? super T> task,
+    boolean offer(K stream, Function<Boolean, ? extends T> resourceFactory, Consumer<? super T> task,
         Consumer<? super Throwable> failureHandler) {
         Objects.requireNonNull(stream, "stream");
         Objects.requireNonNull(resourceFactory, "resourceFactory");
         Objects.requireNonNull(task, "task");
         Objects.requireNonNull(failureHandler, "failureHandler");
 
-        if (!reserveAllocation(stream)) {
-            return false;
+        // Predict whether the new resource will be marked for full resynchronization before creating it.
+        // This lets the factory avoid copying the entire frame when only dirty regions are needed.
+        // The prediction is conservative: it may be true when a full upload is not strictly required
+        // (wastes a full copy), but never false when one is (which would lose required pixels).
+        boolean predictFullUpload;
+        stateLock.lock();
+        try {
+            while (accepting && allocationInProgress) {
+                allocationFinished.awaitUninterruptibly();
+            }
+            if (!accepting) {
+                return false;
+            }
+            if (!pendingLeases.containsKey(stream) && pendingLeases.size() >= maxPendingStreams) {
+                resyncRequired.add(stream);
+                return false;
+            }
+            predictFullUpload = pendingLeases.containsKey(stream) || resyncRequired.contains(stream);
+            allocationInProgress = true;
+            allocationEpoch = resourceEpoch;
+        } finally {
+            stateLock.unlock();
         }
 
         T resource;
         try {
-            resource = Objects.requireNonNull(resourceFactory.get(), "resourceFactory returned null");
+            resource = Objects
+                .requireNonNull(resourceFactory.apply(predictFullUpload), "resourceFactory returned null");
         } catch (Throwable failure) {
             finishFailedAllocation(stream);
             reportFailure(failureHandler, failure);
@@ -83,7 +104,8 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
         try {
             if (accepting && allocationEpoch == resourceEpoch) {
                 Lease<K, T> existingLease = pendingLeases.get(stream);
-                if (existingLease != null || resyncRequired.remove(stream)) {
+                boolean actuallyFullUpload = existingLease != null || resyncRequired.remove(stream);
+                if (actuallyFullUpload) {
                     resyncMarker.accept(resource);
                 }
                 Lease<K, T> newLease = new Lease<>(stream, nextSequence++, resource, task, failureHandler);
@@ -201,27 +223,6 @@ final class AsyncResourceLeaseManager<K, T> implements AutoCloseable {
         stateLock.lock();
         try {
             return runningLeaseCount;
-        } finally {
-            stateLock.unlock();
-        }
-    }
-
-    private boolean reserveAllocation(K stream) {
-        stateLock.lock();
-        try {
-            while (accepting && allocationInProgress) {
-                allocationFinished.awaitUninterruptibly();
-            }
-            if (!accepting) {
-                return false;
-            }
-            if (!pendingLeases.containsKey(stream) && pendingLeases.size() >= maxPendingStreams) {
-                resyncRequired.add(stream);
-                return false;
-            }
-            allocationInProgress = true;
-            allocationEpoch = resourceEpoch;
-            return true;
         } finally {
             stateLock.unlock();
         }
