@@ -40,6 +40,10 @@ if (!Regex("[0-9a-f]{40}").matches(rawJcefCommit)) {
 val jcefCommit: String = rawJcefCommit
 extra["jcefCommit"] = jcefCommit
 
+// 当本地存在 JCEF-RINKU 仓库时，直接以子项目方式编译，方便同时修改 JCEF 与 Rinku 代码；
+// 否则回退到从 GitHub Release 下载 jcef-rinku.jar。
+val useLocalJcef: Boolean = file("../JCEF-RINKU/build.gradle").exists()
+
 // --------------------------------------------------------------------------
 // Custom detached configurations for the three JCEF artifacts
 // --------------------------------------------------------------------------
@@ -51,7 +55,6 @@ val jcefBinary: Configuration by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
     isTransitive = false
-    extendsFrom(jcefApi)
 }
 val jcefSources: Configuration by configurations.creating {
     isCanBeConsumed = false
@@ -65,14 +68,56 @@ configurations["compileOnly"].extendsFrom(jcefApi)
 configurations["testCompileOnly"].extendsFrom(jcefApi)
 
 dependencies {
-    // Use single-string coordinates to avoid Gradle 9+ Configuration.invoke(...) deprecation.
-    jcefApi("$jcefReleaseGroup:jcef-rinku:$jcefCommit@jar")
-    jcefSources("$jcefReleaseGroup:jcef-rinku:$jcefCommit:sources@jar")
+    if (useLocalJcef) {
+        // 本地子项目：jcefApi 用 project 依赖（编译期）；jcefBinary / JCEF 源码包
+        // 都用 files(...) 直接引用构建产物并显式 builtBy，避免：
+        //   1) runtimeClasspath 上出现 project(":jcef-rinku") 触发 GTNH 约定插件
+        //      切换到 classes 目录模式（丢失 MANIFEST.MF 中的 MixinConfigs）；
+        //   2) 产物作为 project 依赖被 RFG 的 DependencyDeobfuscationTransform
+        //      在「计算任务图」阶段解析——那时 :jcef-rinku 的 jar 任务还没执行，
+        //      transformer 把不存在的输入路径注册为输出，报
+        //      "Transform output ... must exist"。
+        add("jcefApi", project(":jcef-rinku", configuration = "jcefJar"))
+    } else {
+        // 远程依赖：从 GitHub Release 下载 jcef-rinku.jar
+        add("jcefApi", "$jcefReleaseGroup:jcef-rinku:$jcefCommit@jar")
+        add("jcefSources", "$jcefReleaseGroup:jcef-rinku:$jcefCommit:sources@jar")
+        add("jcefBinary", "$jcefReleaseGroup:jcef-rinku:$jcefCommit@jar")
+    }
 }
 
+// --------------------------------------------------------------------------
+// JCEF 源码包输入：刻意不通过可解析 Configuration 解析。
+// RFG 会给所有可解析配置打上 rfgDeobfuscatorTransformed=true，导致 Gradle 对
+// 其中的每个 jar 运行 DependencyDeobfuscationTransform。对「由本构建中另一个
+// 任务稍后才产出」的 project artifact，transform 在任务图计算阶段就看到不存在的
+// 文件，于是报 "Transform output ... must exist"。
+// 普通 FileCollection + builtBy 保留了任务依赖，但不参与变体/属性匹配，因此
+// 不会触发任何 artifact transform；远程模式下仍是下载好的实体 jar，正常解析。
+// --------------------------------------------------------------------------
+val jcefSourceJarFiles = files()
+if (useLocalJcef) {
+    jcefSourceJarFiles.from(file("../JCEF-RINKU/build/libs/jcef-rinku-sources.jar"))
+    jcefSourceJarFiles.builtBy(":jcef-rinku:sourcesJar")
+} else {
+    jcefSourceJarFiles.from(jcefSources)
+}
+val jcefSourceJarFile = providers.provider { jcefSourceJarFiles.singleFile }
+
+// 二进制包同理：不经过可解析 Configuration，避免 RFG artifact transform 的
+// 先有鸡先有蛋问题（本地产物由 :jcef-rinku:jar 稍后产出）。
+val jcefBinaryJarFiles = files()
+if (useLocalJcef) {
+    jcefBinaryJarFiles.from(file("../JCEF-RINKU/build/libs/jcef-rinku.jar"))
+    jcefBinaryJarFiles.builtBy(":jcef-rinku:jar")
+} else {
+    jcefBinaryJarFiles.from(jcefBinary)
+}
+val jcefBinaryJarFile = providers.provider { jcefBinaryJarFiles.singleFile }
+
 // JCEF binary classes must also be present when running dev clients/servers
-sourceSets["main"].runtimeClasspath += jcefBinary
-sourceSets["test"].runtimeClasspath += jcefBinary
+sourceSets["main"].runtimeClasspath += jcefBinaryJarFiles
+sourceSets["test"].runtimeClasspath += jcefBinaryJarFiles
 
 // --------------------------------------------------------------------------
 // Generate JcefRuntimeIdentity.java (build-time -> run-time commit bridge)
@@ -128,8 +173,8 @@ try { tasks.named("processSources", AbstractCopyTask::class.java).configure { de
 // --------------------------------------------------------------------------
 // Flat-merge JCEF binaries / sources into the produced Rinku artifacts
 // --------------------------------------------------------------------------
-val jcefBinaryContents = providers.provider { zipTree(jcefBinary.singleFile) }
-val jcefSourceContents = providers.provider { zipTree(jcefSources.singleFile) }
+val jcefBinaryContents = providers.provider { zipTree(jcefBinaryJarFile.get()) }
+val jcefSourceContents = providers.provider { zipTree(jcefSourceJarFile.get()) }
 
 val projectLicense = rootProject.file("LICENSE-template").takeIf { it.exists() }
     ?: rootProject.file("LICENSE")
@@ -149,7 +194,18 @@ val isDevelopmentRun = requestedTasks.any { t ->
 }
 
 tasks.named<Jar>("jar").configure {
-    dependsOn(jcefBinary)
+    dependsOn(jcefBinaryJarFiles)
+    // 本地同时开发 JCEF 时，把重编的 jcef.dll 内嵌进 mod jar，这样「单文件复制进
+    // mods/」就能直接验证 GPU 零拷贝路径；CefUtil 会在 CefApp.startup() 之前把它
+    // 发布到 JCEF 安装目录。CI / 远程构建没有本地 JCEF 源码树时跳过：运行时下载器
+    // 会按 jcef_commit 从对应 Release 取到同一版本的 DLL。
+    val bundledJcefDll = file("../JCEF-Rinku/jcef_build/native/Release/jcef.dll")
+    if (useLocalJcef && bundledJcefDll.isFile) {
+        from(bundledJcefDll) {
+            into("rinku_native")
+            rename { "jcef.dll" }
+        }
+    }
     if (!isDevelopmentRun) {
         from(jcefBinaryContents) {
             include("org/cef/**")
@@ -174,7 +230,7 @@ tasks.named<Jar>("jar").configure {
 }
 
 tasks.named<Jar>("sourcesJar").configure {
-    dependsOn(jcefSources, generateJcefRuntimeIdentity)
+    dependsOn(jcefSourceJarFiles, generateJcefRuntimeIdentity)
     from(jcefSourceContents) {
         include("org/cef/**/*.java")
     }
@@ -197,12 +253,14 @@ val verifyJcefPackaging by tasks.registering {
     group = "verification"
     description = "Verifies jcef-rinku classes are flat-merged into Rinku binary and sources JARs"
     dependsOn("jar", "sourcesJar")
+    // doLast 里直接读取任务对象与脚本级 FileCollection，无法被配置缓存序列化
+    notCompatibleWithConfigurationCache("Reads task objects and script file collections in doLast")
     inputs.property("jcefCommit", jcefCommit)
     inputs.file(jcefLicense)
     val binaryJarTask = tasks.named<Jar>("jar")
     val sourcesJarTask = tasks.named<Jar>("sourcesJar")
     inputs.files(binaryJarTask.flatMap { it.archiveFile }, sourcesJarTask.flatMap { it.archiveFile })
-    inputs.files(jcefBinary, jcefSources)
+    inputs.files(jcefBinaryJarFiles, jcefSourceJarFiles)
 
     doLast {
         fun entries(jf: JarFile): Set<String> = jf.entries().asSequence()
@@ -213,10 +271,10 @@ val verifyJcefPackaging by tasks.registering {
         // Collect what the upstream JCEF binary/sources JARs ship
         val upstreamBinaryEntries: Set<String>
         val upstreamSourceEntries: Set<String>
-        JarFile(jcefBinary.singleFile).use { jar ->
+        JarFile(jcefBinaryJarFile.get()).use { jar ->
             upstreamBinaryEntries = entries(jar).filter { it.startsWith("org/cef/") }.toSet()
         }
-        JarFile(jcefSources.singleFile).use { jar ->
+        JarFile(jcefSourceJarFile.get()).use { jar ->
             upstreamSourceEntries = entries(jar)
                 .filter { it.startsWith("org/cef/") && it.endsWith(".java") }
                 .toSet()

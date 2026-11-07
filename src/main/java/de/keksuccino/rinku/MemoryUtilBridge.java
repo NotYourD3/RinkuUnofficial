@@ -10,12 +10,12 @@ import sun.misc.Unsafe;
 public final class MemoryUtilBridge {
 
     private static final Unsafe UNSAFE;
+    private static final long ADDRESS_OFFSET;
     private static final Method CLEANER_CLEAN;
-    private static final Object ATTACHMENT_NOT_REQUIRED = new Object();
 
     static {
         Unsafe unsafe = null;
-        Method cleanerClean = null;
+        long addressOffset = -1L;
         try {
             Field f = Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
@@ -23,6 +23,18 @@ public final class MemoryUtilBridge {
         } catch (Throwable t) {
             unsafe = null;
         }
+        // Resolve the real java.nio.Buffer.address field offset instead of guessing an object layout
+        // from arrayBaseOffset(). A wrong offset silently yields a bogus native address and corrupts
+        // memory, which is especially dangerous now that frame rows are copied with copyMemory().
+        if (unsafe != null) {
+            try {
+                Field addressField = Buffer.class.getDeclaredField("address");
+                addressOffset = unsafe.objectFieldOffset(addressField);
+            } catch (Throwable t) {
+                addressOffset = -1L;
+            }
+        }
+        Method cleanerClean = null;
         try {
             Class<?> cleanerClass = Class.forName("sun.misc.Cleaner");
             cleanerClean = cleanerClass.getMethod("clean");
@@ -30,6 +42,7 @@ public final class MemoryUtilBridge {
             cleanerClean = null;
         }
         UNSAFE = unsafe;
+        ADDRESS_OFFSET = addressOffset;
         CLEANER_CLEAN = cleanerClean;
     }
 
@@ -40,23 +53,24 @@ public final class MemoryUtilBridge {
     }
 
     public static long memAddress(Buffer buffer) {
-        if (UNSAFE != null && buffer != null) {
+        if (buffer == null || !buffer.isDirect()) {
+            return 0L;
+        }
+        if (UNSAFE != null && ADDRESS_OFFSET >= 0L) {
             try {
-                return UNSAFE.getLong(buffer, UNSAFE.arrayBaseOffset(byte[].class) + 12L);
+                return UNSAFE.getLong(buffer, ADDRESS_OFFSET);
             } catch (Throwable ignored) {}
         }
-        if (buffer != null && buffer.isDirect()) {
-            try {
-                Field addrField = Buffer.class.getDeclaredField("address");
-                addrField.setAccessible(true);
-                return addrField.getLong(buffer);
-            } catch (Throwable ignored) {}
-        }
+        try {
+            Field addrField = Buffer.class.getDeclaredField("address");
+            addrField.setAccessible(true);
+            return addrField.getLong(buffer);
+        } catch (Throwable ignored) {}
         return 0L;
     }
 
     public static void memCopy(long srcAddress, long dstAddress, long bytes) {
-        if (UNSAFE != null && srcAddress != 0L && dstAddress != 0L) {
+        if (UNSAFE != null && srcAddress != 0L && dstAddress != 0L && bytes > 0L) {
             UNSAFE.copyMemory(srcAddress, dstAddress, bytes);
         }
     }

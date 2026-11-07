@@ -114,6 +114,11 @@ public final class CefUtil {
         }
         Path jcefInstallation = Paths.get(configuredJcefPath);
 
+        // The GPU zero-copy fix lives in the native library, not in Java bytecode. Publish the
+        // jcef.dll bundled in this jar before CefApp.startup() loads it, so copying a single mod
+        // jar into mods/ is enough to validate the fix in a production (SRG) game.
+        BundledJcefNative.install(jcefInstallation);
+
         // Archive modes are canonicalized during extraction. This remains a non-destructive fallback
         // for installations copied by tools that discarded executable bits.
         ensureUnixExecutables(jcefInstallation, platform);
@@ -126,6 +131,9 @@ public final class CefUtil {
         cefSwitchesList.add("--use-mobile-user-agent=false");
         cefSwitchesList.add("--device-scale-factor=1");
         cefSwitchesList.add("--force-device-scale-factor=1");
+        cefSwitchesList.add("--enable-gpu");
+        cefSwitchesList.add("--enable-d3d11");
+        cefSwitchesList.add("--single-process");
         if (settings.isDisableWebSecurity()) {
             cefSwitchesList.add("--disable-web-security");
         }
